@@ -12,7 +12,7 @@ import yfinance as yf
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "chaitanyajerripothula95@gmail.com" #os.environ.get("SENDER_EMAIL")
-SENDER_PASSWORD = "cojmm ullt ycjo gmbq" #os.environ.get("SENDER_PASSWORD")
+SENDER_PASSWORD = "ijxntulrcisxybqu" #os.environ.get("SENDER_PASSWORD")
 RECEIVER_EMAIL = "chaitanyajerripothula95@gmail.com" #os.environ.get("RECEIVER_EMAIL")
 
 headers = {
