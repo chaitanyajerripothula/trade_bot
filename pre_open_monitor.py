@@ -10,9 +10,9 @@ import pandas as pd
 # ==========================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
-SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD")
-RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
+SENDER_EMAIL = chaitanyajerripothula95@gmailcom #os.environ.get("SENDER_EMAIL")
+SENDER_PASSWORD = Chaitu@220695 #os.environ.get("SENDER_PASSWORD")
+RECEIVER_EMAIL = chaitanyajerripothula95@gmailcom #os.environ.get("RECEIVER_EMAIL")
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
