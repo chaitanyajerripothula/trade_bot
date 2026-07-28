@@ -70,6 +70,22 @@ Shorter holds (≤30d) did not clear a robust 80%. Details: `scanners/artifacts/
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_tenpct_80wr_scanner.py
 ```
 
+## TwentyPct80 scanner (`run_twenty_pct_80wr_scanner.py`)
+
+Non-linear design for **≥+20%** with validated **≥80% tip WR** (not a 15-day claim):
+
+| | Backtest | Forward |
+|---|---|---|
+| Tip WR | **100%** (n=136) | **100%** (n=43, Wilson~92%) |
+| Hold | **60 trading days** | same |
+| Rule | Calibrated GBM `P(+20%)≥0.79` + Nifty/RS features | walk-forward |
+
+Levers that mattered: float the hold until base rate allows an 80% tip; extreme sparsity; regime + cross-section. ≤30d still fails. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
+
+```bash
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_twenty_pct_80wr_scanner.py
+```
+
 ## Study: +20% in 15 days @ 80% tip WR?
 
 Focused walk-forward research (`scanners/artifacts/move20_in_15d_report.md`):
@@ -77,7 +93,7 @@ Focused walk-forward research (`scanners/artifacts/move20_in_15d_report.md`):
 - Base rate ≈ **4.7%** (test ≈ **2.6%**)
 - Best calibrated tip precision ≈ **21%**
 - Best technical gate ≈ **16%**
-- **≥80% tip WR: not attainable** on Yahoo F&O technicals
+- **≥80% tip WR: not attainable** on Yahoo F&O technicals for a **15-day** hold
 
 ## On-time setup (free)
 
