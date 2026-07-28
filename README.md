@@ -1,8 +1,11 @@
 # trade_bot
 
-NSE F&O pre-open multi-scanner suite. Evening ADV harvest; morning runs independent scanners and emails hits.
+NSE F&O scanner suite:
+- **Morning** — pre-open high-conviction bias (one mail)
+- **Evening** — 20-day ADV harvest
+- **Positional** — HOME RUN swings for **NSE monthly stock options** (separate mail with reason + entry/exit)
 
-## Scanners (each file independent)
+## Pre-open scanners (`run_morning_scanners.py`)
 
 | File | Signal |
 |---|---|
@@ -12,53 +15,43 @@ NSE F&O pre-open multi-scanner suite. Evening ADV harvest; morning runs independ
 | `scanners/volume_shock_scanner.py` | Footprint ≥ **2%** ADV and matched vol ≥ **50k** → Bias |
 | `scanners/near_52w_scanner.py` | IEP within **3%** of 52W high/low, aligned with % chg → Bias |
 
-Morning run clubs all scanner hits into **one high-conviction email** (symbols with ≥2 scanners agreeing on BUY/SELL, or strong footprint alone).
+Morning clubs hits into **one high-conviction email** (symbols with ≥2 scanners agreeing on BUY/SELL, or strong footprint alone).
 
-Run one scanner (prints table, no mail):
 ```bash
-python -m scanners.gap_scanner
+python -m scanners.gap_scanner          # one scanner (print only)
+python run_morning_scanners.py          # all → one mail
 ```
 
-Run all → single combined mail:
+## Positional scanners (`run_positional_scanners.py`)
+
+Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 8** (else rolls to next month). **HOME RUN only**: Trend + (Momentum or Breakout), ATR ≥ 2% of price, max **5** names. Separate email with why / entry / SL / T1(3×ATR) / T2(5×ATR).
+
+| File | Signal |
+|---|---|
+| `scanners/positional_trend_scanner.py` | EMA stack + RSI zone + volume |
+| `scanners/positional_breakout_scanner.py` | 20D high/low break + volume surge |
+| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 |
+| `scanners/positional_momentum_scanner.py` | Strong directional day + orderly ATR |
+
 ```bash
-python run_morning_scanners.py
+python run_positional_scanners.py
+python -m scanners.positional_trend_scanner
 ```
 
 ## On-time setup (free)
 
-GitHub Actions `schedule` cron is often hours late. Use [cron-job.org](https://cron-job.org) → `workflow_dispatch`:
+Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is often late):
 
-| Job | UTC cron | Body |
-|---|---|---|
-| Morning | `37 3 * * 1-5` | `{"ref":"main","inputs":{"phase":"morning"}}` |
-| Evening | `0 11 * * 1-5` | `{"ref":"main","inputs":{"phase":"evening"}}` |
+| Job | UTC cron | IST | Body |
+|---|---|---|---|
+| Morning | `37 3 * * 1-5` | 09:07 | `{"ref":"main","inputs":{"phase":"morning"}}` |
+| Positional | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
+| Evening | `0 11 * * 1-5` | 16:30 | `{"ref":"main","inputs":{"phase":"evening"}}` |
 
 POST `https://api.github.com/repos/chaitanyajerripothula/trade_bot/actions/workflows/main.yml/dispatches`  
 Headers: `Authorization: Bearer <PAT>`, `Accept: application/vnd.github+json`, `Content-Type: application/json`
 
 Repo secrets: `SENDER_EMAIL`, `SENDER_PASSWORD`, `RECEIVER_EMAIL`.
-
-## How it works
-
-```mermaid
-flowchart TB
-  C1[cron-job.org] -->|morning| GH[GitHub Actions]
-  C2[cron-job.org] -->|evening| GH
-  GH --> ADV[generate_adv.py]
-  ADV --> CSV[(fno_adv.csv)]
-  GH --> RUN[run_morning_scanners.py]
-  CSV --> RUN
-  RUN --> S1[footprint]
-  RUN --> S2[gap]
-  RUN --> S3[imbalance]
-  RUN --> S4[volume shock]
-  RUN --> S5[52W proximity]
-  S1 --> MAIL[Gmail]
-  S2 --> MAIL
-  S3 --> MAIL
-  S4 --> MAIL
-  S5 --> MAIL
-```
 
 ## Manual local run
 
@@ -66,4 +59,5 @@ flowchart TB
 pip install -r requirements.txt
 python generate_adv.py
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_morning_scanners.py
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_positional_scanners.py
 ```

@@ -1,14 +1,14 @@
 name: End-to-End Institutional Pre-Open Suite
 
 # GitHub's built-in `schedule` cron is best-effort and often 1–3 hours late.
-# For on-time pre-open runs, trigger this workflow via workflow_dispatch from a
-# free external cron (cron-job.org) — see README.
+# For on-time runs, trigger via workflow_dispatch from cron-job.org — see README.
 
 on:
   schedule:
     # Fallback only — expect multi-hour drift on GitHub-hosted cron.
-    - cron: '0 11 * * 1-5'      # evening ADV intent (16:30 IST)
-    - cron: '37 3 * * 1-5'      # morning monitor intent (09:07 IST)
+    - cron: '0 11 * * 1-5'       # evening ADV intent (16:30 IST)
+    - cron: '37 3 * * 1-5'       # morning pre-open intent (09:07 IST)
+    - cron: '15 10 * * 1-5'      # positional after close intent (15:45 IST)
 
   workflow_dispatch:
     inputs:
@@ -19,6 +19,7 @@ on:
         options:
           - morning
           - evening
+          - positional
         default: morning
 
 permissions:
@@ -49,6 +50,8 @@ jobs:
           PHASE="${{ inputs.phase }}"
         elif [ "${{ github.event.schedule }}" = "0 11 * * 1-5" ]; then
           PHASE="evening"
+        elif [ "${{ github.event.schedule }}" = "15 10 * * 1-5" ]; then
+          PHASE="positional"
         else
           PHASE="morning"
         fi
@@ -67,7 +70,7 @@ jobs:
         git commit -m "System Sync: Automatically updated historical 20-Day ADV vectors" || echo "No changes detected"
         git push
 
-    - name: Morning Phase - Scan Pre-Open with Dynamic Offset
+    - name: Morning Phase - Pre-Open High Conviction Scanners
       if: steps.phase.outputs.phase == 'morning'
       env:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
@@ -79,3 +82,16 @@ jobs:
           exit 1
         fi
         python run_morning_scanners.py
+
+    - name: Positional Phase - Monthly Options Swing Scanners
+      if: steps.phase.outputs.phase == 'positional'
+      env:
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+        RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+      run: |
+        if [ -z "$SENDER_EMAIL" ] || [ -z "$SENDER_PASSWORD" ] || [ -z "$RECEIVER_EMAIL" ]; then
+          echo "Missing repository secrets: SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL"
+          exit 1
+        fi
+        python run_positional_scanners.py
