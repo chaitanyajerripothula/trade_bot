@@ -3,7 +3,7 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — **1:20 R:R** lottery tickets for **NSE monthly stock options** (separate mail with reason + entry/exit)
+- **Positional / home runs** — **ZERO/0DTE** or **MONTHLY** options lotteries with very high conviction (separate mail)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
@@ -22,31 +22,23 @@ python -m scanners.gap_scanner          # one scanner (print only)
 python run_morning_scanners.py          # all → one mail
 ```
 
-## Positional scanners (`run_positional_scanners.py`)
+## Home-run scanners (`run_homerun_scanners.py`)
 
-Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 15** (else rolls to next month). **1:20 only**: Trend + Momentum + Breakout must agree, ATR ≥ 2.5% of price, max **3** names. SL=1×ATR · T1=5×ATR (scale) · T2=20×ATR. Suggests OTM (~0.5×ATR) monthly options. Most tickets fail — size as lottery.
+Pivot: **ZERO/0DTE (or near-zero DTE)** **or** **MONTHLY** expiry — home-run tickets only, very high conviction, tiny size.
 
-| File | Signal |
-|---|---|
-| `scanners/positional_trend_scanner.py` | EMA stack + RSI zone + volume |
-| `scanners/positional_breakout_scanner.py` | Close vs **prior** 20D high/low + volume surge |
-| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 (optional 4th) |
-| `scanners/positional_momentum_scanner.py` | Strong directional day + orderly ATR |
+| Bucket | What | Gate |
+|---|---|---|
+| **ZERO / 0DTE** | Index (NIFTY / BANKNIFTY / FINNIFTY) same-day / nearest weekly lottery | Day thrust ≥1.25%, vol ≥2×, break prior 20D extreme, RSI zone — max 2 |
+| **ZERO monthly tail** | Stock options with **DTE ≤ 2** before this month’s last Thursday | ≥2.5% day + vol ≥2.5× + prior-range break + ATR≥3% — max 1 |
+| **MONTHLY** | Stock options, last Thursday, **DTE ≥ 15** | Trend + Momentum + Breakout agree, ATR≥2.5%, 1×ATR SL / 20×ATR T2 — max 2 |
 
 ```bash
+python run_homerun_scanners.py
+# alias:
 python run_positional_scanners.py
-python -m scanners.positional_trend_scanner
 ```
 
-## RL swing scanner (`run_rl_20pct_scanner.py`)
-
-Yahoo-trained tabular Q-learning + calibrated HistGBM for **±15% in ≤30 trading days** (15–30d window).
-
-**Occurrence vs tip win-rate:** ~23% of F&O day-rows later print +15% MFE within 30 sessions, so “at least one stock moves 15% this month” is normal. That is not an 80% tip win-rate — walk-forward alert precision tops out well below 80% on technicals. Live mail uses the best calibrated threshold and prints validated OOS precision (see `scanners/artifacts/rl_20pct_report.md`). Retrain: `python research/rl_20pct_train.py`.
-
-```bash
-SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_rl_20pct_scanner.py
-```
+Research note: predicting ±15–20% swings at ≥80% tip win-rate on technicals alone was not attainable (see `scanners/artifacts/rl_20pct_report.md`). This suite does **not** claim that — it only fires sparse lottery tickets.
 
 ## On-time setup (free)
 
@@ -55,7 +47,7 @@ Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is
 | Job | UTC cron | IST | Body |
 |---|---|---|---|
 | Morning | `37 3 * * 1-5` | 09:07 | `{"ref":"main","inputs":{"phase":"morning"}}` |
-| Positional | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
+| Positional / home run | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
 | Evening | `0 11 * * 1-5` | 16:30 | `{"ref":"main","inputs":{"phase":"evening"}}` |
 
 POST `https://api.github.com/repos/chaitanyajerripothula/trade_bot/actions/workflows/main.yml/dispatches`  
@@ -69,5 +61,5 @@ Repo secrets: `SENDER_EMAIL`, `SENDER_PASSWORD`, `RECEIVER_EMAIL`.
 pip install -r requirements.txt
 python generate_adv.py
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_morning_scanners.py
-SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_positional_scanners.py
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_homerun_scanners.py
 ```

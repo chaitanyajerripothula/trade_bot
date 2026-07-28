@@ -94,5 +94,4 @@ jobs:
           echo "Missing repository secrets: SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL"
           exit 1
         fi
-        python run_positional_scanners.py
-        python run_rl_20pct_scanner.py
+        python run_homerun_scanners.py
