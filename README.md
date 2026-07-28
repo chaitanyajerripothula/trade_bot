@@ -3,48 +3,36 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — swing setups for **NSE monthly stock options** (separate mail with reason + entry/exit)
+- **Positional** — HOME RUN swings for **NSE monthly stock options** (separate mail with reason + entry/exit)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
 | File | Signal |
 |---|---|
-<<<<<<< HEAD
-| `scanners/footprint_scanner.py` | Matched vol ≥ 5% ADV → Bias |
-| `scanners/gap_scanner.py` | \|Gap\| ≥ 2% → Bias |
-| `scanners/imbalance_scanner.py` | \|Imbalance\| ≥ 55% (book ≥ 20k) → Bias |
-| `scanners/volume_shock_scanner.py` | ≥2% ADV + ≥50k matched → Bias |
-| `scanners/near_52w_scanner.py` | Within 3% of 52W H/L → Bias |
-
-## Positional scanners (`run_positional_scanners.py`)
-
-Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 8**. High conviction = **≥2 scanners** agree on CALL or PUT. Separate email includes why chosen, entry, SL, T1/T2.
-
-| File | Signal |
-|---|---|
-| `scanners/positional_trend_scanner.py` | EMA stack + RSI swing zone + volume |
-| `scanners/positional_breakout_scanner.py` | 20D high/low break + volume surge |
-| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 |
-| `scanners/positional_momentum_scanner.py` | Strong directional day + orderly ATR |
-
-Trade plan on underlying: **Entry = close**, **SL = 1.5×ATR**, **T1 = 2.5×ATR**, **T2 = 4×ATR**, plus suggested monthly ATM CE/PE.
-
-=======
 | `scanners/footprint_scanner.py` | Matched pre-open vol ≥ **5%** of 20-day ADV → Bias |
 | `scanners/gap_scanner.py` | \|IEP % chg\| ≥ **2%** → Bias |
 | `scanners/imbalance_scanner.py` | \|Buy−Sell\| / (Buy+Sell) ≥ **55%** (book ≥ 20k) → Bias |
 | `scanners/volume_shock_scanner.py` | Footprint ≥ **2%** ADV and matched vol ≥ **50k** → Bias |
 | `scanners/near_52w_scanner.py` | IEP within **3%** of 52W high/low, aligned with % chg → Bias |
 
-Morning run clubs all scanner hits into **one high-conviction email** (symbols with ≥2 scanners agreeing on BUY/SELL, or strong footprint alone).
+Morning clubs hits into **one high-conviction email** (symbols with ≥2 scanners agreeing on BUY/SELL, or strong footprint alone).
 
-Run one scanner (prints table, no mail):
 ```bash
-python -m scanners.gap_scanner
+python -m scanners.gap_scanner          # one scanner (print only)
+python run_morning_scanners.py          # all → one mail
 ```
 
-Run all → single combined mail:
->>>>>>> origin/main
+## Positional scanners (`run_positional_scanners.py`)
+
+Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 8** (else rolls to next month). **HOME RUN only**: Trend + (Momentum or Breakout), ATR ≥ 2% of price, max **5** names. Separate email with why / entry / SL / T1(3×ATR) / T2(5×ATR).
+
+| File | Signal |
+|---|---|
+| `scanners/positional_trend_scanner.py` | EMA stack + RSI zone + volume |
+| `scanners/positional_breakout_scanner.py` | 20D high/low break + volume surge |
+| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 |
+| `scanners/positional_momentum_scanner.py` | Strong directional day + orderly ATR |
+
 ```bash
 python run_positional_scanners.py
 python -m scanners.positional_trend_scanner
