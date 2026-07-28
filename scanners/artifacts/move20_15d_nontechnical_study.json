@@ -1,0 +1,60 @@
+{
+  "created_utc": "2026-07-28T10:40:22.157392+00:00",
+  "objective": {
+    "move": 0.2,
+    "horizon": 15,
+    "target_wr": 0.8,
+    "features": "non_technical_only"
+  },
+  "meta": {
+    "symbols_slices": 120,
+    "symbols_gbm": 80,
+    "rows_gbm": 96271,
+    "base_rate_slices": 0.0557,
+    "test_base_slices": 0.0329,
+    "gbm_auc": 0.7673,
+    "best_gbm": {
+      "prec": 0.14469453376205788,
+      "n": 311,
+      "thr": 0.13793103448275862,
+      "wilson": 0.10992932062871602
+    },
+    "best_slice_prec": 0.083,
+    "slices_hit80": 0,
+    "gbm_hit80": 0,
+    "verdict": "NOT_ATTAINABLE"
+  },
+  "slices_top": [
+    {
+      "slice": "month=4",
+      "test_wr": 0.083,
+      "test_n": 4680,
+      "train_wr": 0.056
+    },
+    {
+      "slice": "month=3",
+      "test_wr": 0.076,
+      "test_n": 4560,
+      "train_wr": 0.081
+    },
+    {
+      "slice": "mcap_q=0",
+      "test_wr": 0.067,
+      "test_n": 8438,
+      "train_wr": 0.115
+    },
+    {
+      "slice": "sector=Industrials",
+      "test_wr": 0.058,
+      "test_n": 7338,
+      "train_wr": 0.107
+    },
+    {
+      "slice": "earnGrowth>30%",
+      "test_wr": 0.05,
+      "test_n": 14674,
+      "train_wr": 0.084
+    }
+  ],
+  "note": "Technicals removed. Used sector, size, PE, margins, growth, short interest, analyst recs, calendar, earnings windows."
+}

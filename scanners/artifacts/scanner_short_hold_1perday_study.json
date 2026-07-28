@@ -1,0 +1,33 @@
+{
+  "constraint": "max hold 1\u20132 months (~\u226430\u201345 trading days) + want \u22651 tip/day + prefer 80% WR",
+  "verdict": {
+    "plus20_at_80": "NOT_ATTAINABLE (best ~58% @45d / ~68% @60d with \u22651 avg tip/day)",
+    "force_tip_every_day_at_80": "NOT_ATTAINABLE even for +10% (daily top-1 ~57\u201361%)",
+    "plus10_avg_ge1_at_80": "ATTAINABLE \u2014 CHOSEN (+10% / 30d / P\u22650.82)"
+  },
+  "chosen": {
+    "kind": "thr",
+    "target": 0.1,
+    "hold": 30,
+    "thr": 0.82,
+    "max_k": 3,
+    "back_n": 785,
+    "back_wr": 0.9668789808917198,
+    "back_tpd": 1.1409883720930232,
+    "back_day_coverage": 0.18313953488372092,
+    "fwd_n": 380,
+    "fwd_wr": 0.8868421052631579,
+    "fwd_tpd": 1.4339622641509433,
+    "fwd_day_coverage": 0.17358490566037735,
+    "wilson": 0.8510431545297955,
+    "hit80": true
+  },
+  "latest20": {
+    "n": 380,
+    "wr": 0.8868421052631579,
+    "wilson": 0.8510431545297955,
+    "tpd": 1.9895287958115184,
+    "day_coverage": 0.24083769633507854
+  },
+  "cut": "2025-05-19"
+}
