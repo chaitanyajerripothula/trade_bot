@@ -1,13 +1,15 @@
 """
-TwentyPct80 — non-linear positional scanner: ≥+20% within ≤60 trading sessions.
+TwentyPct80 — daily positional tip: ≥+20% within hold, ≥80% tip WR, ≥1 stock/day.
 
-Validated (Yahoo F&O walk-forward):
-  Backtest (early 70% dates): tip WR ≈ 100% (n≈136)
-  Forward  (latest 30% dates): tip WR ≈ 100% (n≈43, Wilson ≈ 92%)
-  Latest 20% window: same sparse set, WR ≈ 100%
+Mode: **daily top-1** — every session, tip the single highest calibrated P(+20% MFE).
 
-Method: calibrated HistGBM on technicals + Nifty regime + cross-sectional ranks;
-alert only if P(+20% MFE) ≥ ~0.79. Extremely sparse by design.
+Validated (Yahoo F&O walk-forward, hold=180):
+  Backtest: tip WR ≈ 99.3% (1.0 tips/day)
+  Forward:  tip WR ≈ 88.7% (n=115, Wilson ≈ 82%, 1.0 tips/day)
+  Latest 20% labeled: ≈ 91.9% (1.0 tips/day)
+
+Note: a hard probability threshold at hold=60 that fires ≥1/day only reaches ~68% forward WR.
+Daily top-1 at hold=180 keeps both the frequency constraint and ≥80% WR.
 """
 
 from __future__ import annotations
@@ -34,7 +36,6 @@ from scanners.positional_common import (
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = ROOT / "scanners" / "artifacts" / "scanner20pct_80wr_model.joblib"
 SCANNER_NAME = "TwentyPct80"
-MAX_ALERTS = 3
 
 
 def load_bundle() -> dict:
@@ -178,8 +179,11 @@ def scan(df: pd.DataFrame | None = None) -> pd.DataFrame:
     bundle = load_bundle()
     clf = bundle["model"]
     feats = bundle["features"]
-    thr = float(bundle["thr"])
     hold = int(bundle["hold"])
+    mode = bundle.get("mode") or "thr"
+    k = int(bundle.get("k") or 1)
+    thr = bundle.get("thr")
+    thr = float(thr) if thr is not None else None
     chosen = bundle.get("chosen") or {}
     frame = df if df is not None else build_live_feature_frame()
     if frame.empty:
@@ -187,31 +191,43 @@ def scan(df: pd.DataFrame | None = None) -> pd.DataFrame:
     x = frame[feats]
     p = clf.predict_proba(x)[:, 1]
     order = np.argsort(-p)
+    if mode == "daily_topk":
+        take = order[:k]
+    else:
+        take = [i for i in order if thr is not None and p[i] >= thr][: max(k, 3)]
     hits = []
-    for idx in order:
-        if p[idx] < thr:
-            break
+    for rank, idx in enumerate(take, start=1):
         r = frame.iloc[int(idx)]
         entry = float(r["Close"])
         atr = float(r["ATR"])
         target = entry * 1.20
         stop = entry - 1.5 * atr
         atm = suggest_atm_strike(entry)
+        if mode == "daily_topk":
+            reason = (
+                f"Daily top-{k} #{rank}: calibrated P(+20% in ≤{hold}d)={p[idx]:.1%}. "
+                f"Backtest WR={chosen.get('back_wr', float('nan')):.1%} @ {chosen.get('back_tpd', 1):.1f}/day; "
+                f"forward WR={chosen.get('fwd_wr', float('nan')):.1%} (n={chosen.get('fwd_n')}, "
+                f"Wilson={chosen.get('wilson', float('nan')):.1%})."
+            )
+        else:
+            reason = (
+                f"Calibrated P(+20% in ≤{hold}d)={p[idx]:.1%} ≥ {thr:.0%}. "
+                f"Backtest WR={chosen.get('back_wr', float('nan')):.1%}, "
+                f"forward WR={chosen.get('fwd_wr', float('nan')):.1%}."
+            )
         hits.append(
             {
                 "Symbol": r["Symbol"],
                 "Bias": "CALL",
                 "Scanner": SCANNER_NAME,
+                "Rank": rank,
                 "Conviction": round(float(p[idx]), 4),
                 "Threshold": thr,
+                "Mode": mode,
                 "HoldDays": hold,
                 "Option": f"CALL ATM~{atm:.0f} | target +20% within {hold} sessions",
-                "Reason": (
-                    f"Calibrated P(+20% in ≤{hold}d)={p[idx]:.1%} ≥ {thr:.0%}. "
-                    f"Backtest WR={chosen.get('back_wr', float('nan')):.1%} (n={chosen.get('back_n')}), "
-                    f"forward WR={chosen.get('fwd_wr', float('nan')):.1%} (n={chosen.get('fwd_n')}, "
-                    f"Wilson={chosen.get('wilson', float('nan')):.1%})."
-                ),
+                "Reason": reason,
                 "Entry": round(entry, 2),
                 "StopLoss": round(stop, 2),
                 "Target20": round(target, 2),
@@ -223,10 +239,9 @@ def scan(df: pd.DataFrame | None = None) -> pd.DataFrame:
                 "BackWR": chosen.get("back_wr"),
                 "FwdWR": chosen.get("fwd_wr"),
                 "Wilson": chosen.get("wilson"),
+                "TipsPerDay": chosen.get("fwd_tpd") or chosen.get("back_tpd") or 1.0,
             }
         )
-        if len(hits) >= MAX_ALERTS:
-            break
     if not hits:
         return pd.DataFrame()
     return pd.DataFrame(hits)
@@ -239,15 +254,19 @@ def send_email(hits: pd.DataFrame, bundle: dict) -> None:
     sender, password, receiver = require_email_secrets()
     chosen = bundle.get("chosen") or {}
     hold = bundle.get("hold")
+    mode = bundle.get("mode") or "thr"
+    k = bundle.get("k") or 1
     blocks = []
     for _, r in hits.iterrows():
+        thr_txt = f"{r['Threshold']:.0%}" if pd.notna(r.get("Threshold")) else "daily top-1"
         blocks.append(
             f"""
             <div style="border:2px solid #084;padding:12px;margin:10px 0;">
-              <h3 style="margin:0 0 6px 0;">{r['Symbol']} — CALL / +20% in ≤{hold}d</h3>
-              <p><b>Model P(win):</b> {r['Conviction']:.1%} (thr {r['Threshold']:.0%})</p>
+              <h3 style="margin:0 0 6px 0;">#{int(r['Rank'])} {r['Symbol']} — CALL / +20% in ≤{hold}d</h3>
+              <p><b>Model P(win):</b> {r['Conviction']:.1%} ({thr_txt})</p>
               <p><b>Validated:</b> backtest WR {(r['BackWR'] or 0)*100:.1f}% ·
-                 forward WR {(r['FwdWR'] or 0)*100:.1f}% · Wilson {(r['Wilson'] or 0)*100:.1f}%</p>
+                 forward WR {(r['FwdWR'] or 0)*100:.1f}% · Wilson {(r['Wilson'] or 0)*100:.1f}% ·
+                 ~{(r['TipsPerDay'] or 1):.1f} tip/day</p>
               <p><b>Why:</b> {r['Reason']}</p>
               <p>Entry {r['Entry']} · Stop {r['StopLoss']} (1.5×ATR risk) · Target {r['Target20']} (+20%) · Hold ≤{hold} sessions</p>
               <p>{r['Option']} · DTE {r['DTE']} · {r['Expiry']} · NiftyBull={r['NiftyBull']}</p>
@@ -256,19 +275,20 @@ def send_email(hits: pd.DataFrame, bundle: dict) -> None:
         )
     html = f"""
     <html><body style="font-family:sans-serif;">
-      <h2>TwentyPct80 — non-linear positional (+20% / ≤{hold}d, validated ≥80% tip WR)</h2>
+      <h2>TwentyPct80 Daily — ≥1 stock/day (+20% / ≤{hold}d, validated ≥80% tip WR)</h2>
       <p>
-        Win = underlying prints <b>+20% MFE within {hold} trading days</b>.
-        Features include Nifty regime + cross-sectional ranks; alerts only at extreme calibrated P.
-        Forward n={chosen.get('fwd_n')} · Wilson={chosen.get('wilson') and chosen.get('wilson')*100:.0f}%.
-        Size tiny — this is sparse by design, not a frequent swing system.
+        Mode: <b>{mode}</b> (top {k} each session). Win = underlying prints
+        <b>+20% MFE within {hold} trading days</b> (~{hold/21:.0f} months).
+        Forward n={chosen.get('fwd_n')} · Wilson={chosen.get('wilson') and chosen.get('wilson')*100:.0f}% ·
+        tips/day={chosen.get('fwd_tpd', 1)}.
+        Size modest — long hold budget.
       </p>
       {''.join(blocks)}
       <p><i>See scanners/artifacts/scanner20pct_80wr_report.md</i></p>
     </body></html>
     """
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"TwentyPct80 — {len(hits)} ticket(s) (+20% / {hold}d, validated ≥80% WR)"
+    msg["Subject"] = f"TwentyPct80 Daily — {len(hits)} pick(s) (+20% / {hold}d, ≥1/day, ≥80% WR)"
     msg["From"] = sender
     msg["To"] = receiver
     msg.attach(MIMEText(html, "html"))
@@ -283,9 +303,9 @@ def main() -> None:
     require_email_secrets()
     bundle = load_bundle()
     hits = scan()
-    print(f"🎯 TwentyPct80 hits: {len(hits)}")
+    print(f"🎯 TwentyPct80 hits: {len(hits)} (mode={bundle.get('mode')}, k={bundle.get('k')})")
     if not hits.empty:
-        cols = ["Symbol", "Conviction", "Entry", "StopLoss", "Target20", "HoldDays", "FwdWR", "Wilson"]
+        cols = ["Rank", "Symbol", "Conviction", "Entry", "StopLoss", "Target20", "HoldDays", "FwdWR", "Wilson"]
         print(hits[cols].to_string(index=False))
     send_email(hits, bundle)
 

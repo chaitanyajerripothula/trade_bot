@@ -72,15 +72,16 @@ SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_tenpct_80wr_s
 
 ## TwentyPct80 scanner (`run_twenty_pct_80wr_scanner.py`)
 
-Non-linear design for **≥+20%** with validated **≥80% tip WR** (not a 15-day claim):
+**≥1 stock per day** + **≥+20%** + validated **≥80% tip WR**:
 
 | | Backtest | Forward |
 |---|---|---|
-| Tip WR | **100%** (n=136) | **100%** (n=43, Wilson~92%) |
-| Hold | **60 trading days** | same |
-| Rule | Calibrated GBM `P(+20%)≥0.79` + Nifty/RS features | walk-forward |
+| Tip WR | **99.3%** | **88.7%** (n=115, Wilson~82%) |
+| Frequency | **1.0 tip/day** | **1.0 tip/day** |
+| Hold | **180 trading days** | same |
+| Rule | **Daily top-1** by calibrated `P(+20%)` | walk-forward |
 
-Levers that mattered: float the hold until base rate allows an 80% tip; extreme sparsity; regime + cross-section. ≤30d still fails. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
+A hard threshold at hold=60 that fires ≥1/day only reaches ~68% forward WR. Daily top-1 at 180d keeps both constraints. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
 
 ```bash
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_twenty_pct_80wr_scanner.py
