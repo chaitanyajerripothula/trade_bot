@@ -128,6 +128,173 @@ def append_signals(hits: pd.DataFrame) -> pd.DataFrame:
     return combined.reset_index(drop=True)
 
 
+def last_signals(n: int = LAST_N) -> pd.DataFrame:
+    hist = load_history()
+    if hist.empty:
+        return hist
+    return hist.sort_values(["Date", "Conviction"], ascending=[False, False]).head(n).reset_index(drop=True)
+
+
+def backfill_signal_history(min_n: int = LAST_N, lookback_days: int = 250) -> pd.DataFrame:
+    """Replay recent sessions until ≥min_n historical tips (sparse ~3/month)."""
+    hist = load_history()
+    if len(hist) >= min_n:
+        return last_signals(min_n)
+
+    bundle = load_bundle()
+    clf, feats = bundle["model"], bundle["features"]
+    thr = float(bundle.get("thr") or 0.82)
+    max_k = int(bundle.get("max_k") or 3)
+    move = float(bundle.get("move") or 0.03)
+    chosen = bundle.get("chosen") or {}
+
+    symbols = load_fo_symbols()
+    tickers = [f"{s}.NS" for s in symbols]
+    print(f"⏪ Backfilling {SCANNER_NAME} history from last ~{lookback_days}d…")
+    raw = yf.download(
+        tickers=tickers, period="2y", interval="1d", group_by="ticker", threads=True, progress=False, auto_adjust=False
+    )
+    reg = _nifty_regime()
+    panels = {}
+    for sym, ticker in zip(symbols, tickers):
+        try:
+            if isinstance(raw.columns, pd.MultiIndex):
+                if ticker not in raw.columns.get_level_values(0):
+                    continue
+                bar = raw[ticker].dropna(how="all").copy()
+            else:
+                bar = raw.dropna(how="all").copy()
+            if len(bar) < 260:
+                continue
+            c = bar["Close"].astype(float)
+            h = bar["High"].astype(float)
+            l = bar["Low"].astype(float)
+            o = bar["Open"].astype(float)
+            v = bar["Volume"].astype(float)
+            ema20 = c.ewm(span=20, adjust=False).mean()
+            ema50 = c.ewm(span=50, adjust=False).mean()
+            ema200 = c.ewm(span=200, adjust=False).mean()
+            atr = _atr(h, l, c)
+            rsi = _rsi(c)
+            volma = v.rolling(20).mean()
+            volstd = v.rolling(20).std()
+            prev_hi = h.shift(1).rolling(20).max()
+            prev_lo = l.shift(1).rolling(20).min()
+            hi52 = h.rolling(252).max()
+            lo52 = l.rolling(252).min()
+            rng20 = (h.rolling(20).max() - l.rolling(20).min()) / c.replace(0, np.nan)
+            rng5 = (h.rolling(5).max() - l.rolling(5).min()) / c.replace(0, np.nan)
+            day_rng = (h - l).replace(0, np.nan)
+            oc_max = pd.concat([o, c], axis=1).max(axis=1)
+            oc_min = pd.concat([o, c], axis=1).min(axis=1)
+            bull = (c > ema20) & (ema20 > ema50) & (c > ema200)
+            bear = (c < ema20) & (ema20 < ema50) & (c < ema200)
+            trend = np.where(bull, 2, np.where(bear, -2, np.where(c > ema50, 1, np.where(c < ema50, -1, 0))))
+            brk = np.where(c > prev_hi, 1, np.where(c < prev_lo, -1, 0))
+            idx = pd.to_datetime(bar.index).tz_localize(None)
+            df = pd.DataFrame(
+                {
+                    "Date": idx,
+                    "Close": c.to_numpy(),
+                    "ATR": atr.to_numpy(),
+                    "trend": trend,
+                    "rsi": rsi.to_numpy(),
+                    "atr_pct": (atr / c * 100).to_numpy(),
+                    "vol_ratio": (v / volma).to_numpy(),
+                    "vol_z": ((v - volma) / volstd.replace(0, np.nan)).to_numpy(),
+                    "ext_atr": ((c - ema20).abs() / atr.replace(0, np.nan)).to_numpy(),
+                    "mom1": (c.pct_change() * 100).to_numpy(),
+                    "mom5": (c.pct_change(5) * 100).to_numpy(),
+                    "mom20": (c.pct_change(20) * 100).to_numpy(),
+                    "mom60": (c.pct_change(60) * 100).to_numpy(),
+                    "mom120": (c.pct_change(120) * 100).to_numpy(),
+                    "break_sig": brk,
+                    "dist_52w_high": ((c / hi52 - 1) * 100).to_numpy(),
+                    "dist_52w_low": ((c / lo52 - 1) * 100).to_numpy(),
+                    "gap_pct": ((o / c.shift(1) - 1) * 100).to_numpy(),
+                    "compress": (rng5 / rng20.replace(0, np.nan)).to_numpy(),
+                    "close_loc": ((c - l) / day_rng).to_numpy(),
+                    "day_range_pct": ((h - l) / c * 100).to_numpy(),
+                    "body_pct": ((c - o).abs() / c * 100).to_numpy(),
+                    "upper_wick": ((h - oc_max) / day_rng).to_numpy(),
+                    "lower_wick": ((oc_min - l) / day_rng).to_numpy(),
+                    "month": idx.month,
+                }
+            ).replace([np.inf, -np.inf], np.nan)
+            df = df.merge(reg, on="Date", how="left")
+            df["rs20"] = df["mom20"] - df["nifty_mom20"]
+            df["rs60"] = df["mom60"] - df["nifty_mom60"]
+            df = df.dropna().reset_index(drop=True)
+            if len(df) >= 180:
+                panels[sym] = df
+        except Exception:
+            continue
+
+    if not panels:
+        print("Backfill failed — empty panels")
+        return last_signals(min_n)
+
+    all_dates = sorted({d for p in panels.values() for d in p["Date"].tolist()})
+    recent = all_dates[-lookback_days:]
+    collected = []
+    for dt in reversed(recent):
+        rows = []
+        for sym, panel in panels.items():
+            sub = panel[panel["Date"] == dt]
+            if sub.empty:
+                continue
+            row = sub.iloc[0].to_dict()
+            row["Symbol"] = sym
+            rows.append(row)
+        if len(rows) < 30:
+            continue
+        day = pd.DataFrame(rows)
+        day["rank_mom20"] = day["mom20"].rank(pct=True)
+        day["rank_rs20"] = day["rs20"].rank(pct=True)
+        day["rank_atr"] = day["atr_pct"].rank(pct=True)
+        day["rank_vol"] = day["vol_ratio"].rank(pct=True)
+        day = day.replace([np.inf, -np.inf], np.nan).dropna(subset=feats)
+        if day.empty:
+            continue
+        p = clf.predict_proba(day[feats].to_numpy())[:, 1]
+        order = np.argsort(-p)
+        take = [i for i in order if p[i] >= thr][:max_k]
+        for idx in take:
+            r = day.iloc[int(idx)]
+            ref = float(r["Close"])
+            atr = float(r["ATR"])
+            reason = (
+                f"P(≥{move*100:.0f}% from next open, either way)={p[idx]:.1%} ≥ {thr:.0%}. "
+                f"Forward WR={chosen.get('fwd_wr', float('nan')):.1%} "
+                f"(Wilson={chosen.get('wilson', float('nan')):.1%})."
+            )
+            collected.append(
+                {
+                    "Date": pd.Timestamp(dt).strftime("%Y-%m-%d"),
+                    "Symbol": r["Symbol"],
+                    "Bias": "MOVE",
+                    "Entry": round(ref, 2),
+                    "Exit": round(ref * (1.0 + move), 2),
+                    "StopLoss": round(ref - 1.5 * atr, 2),
+                    "Conviction": round(float(p[idx]), 4),
+                    "Reason": reason,
+                }
+            )
+        if len(collected) >= min_n:
+            break
+
+    if collected:
+        add = pd.DataFrame(collected)
+        combined = pd.concat([hist, add], ignore_index=True)
+        combined = combined.drop_duplicates(subset=["Date", "Symbol"], keep="last")
+        combined = combined.sort_values(["Date", "Conviction"], ascending=[False, False]).head(HISTORY_KEEP)
+        save_history(combined)
+        print(f"✅ Backfilled {len(add)} historical tip(s); history size={len(combined)}")
+    else:
+        print("Backfill found no tips above threshold in lookback window")
+    return last_signals(min_n)
+
+
 def build_live_feature_frame(period: str = "2y") -> pd.DataFrame:
     symbols = load_fo_symbols()
     tickers = [f"{s}.NS" for s in symbols]
@@ -352,6 +519,8 @@ def send_email(hits: pd.DataFrame, last: pd.DataFrame) -> None:
 def main(dry_run: bool = False) -> pd.DataFrame:
     if not dry_run:
         require_email_secrets()
+    if len(load_history()) < LAST_N:
+        backfill_signal_history(LAST_N)
     hits = scan()
     hist = append_signals(hits)
     last = hist.head(LAST_N)
