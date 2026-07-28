@@ -14,6 +14,25 @@ from fo_adv import compute_20day_adv, fetch_preopen_payload, make_session
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
+# Clubbed high-conviction gate: multi-scanner agreement, or lone strong footprint.
+MIN_ALIGNED_SCANNERS = 2
+STRONG_FOOTPRINT_PCT = 5.0
+
+COMBINED_COLUMNS = [
+    "Symbol",
+    "Bias",
+    "Conviction",
+    "Scanners",
+    "IEP_Open",
+    "Pct_Chg",
+    "Matched_Vol",
+    "Footprint_Pct",
+    "Gap_Pct",
+    "Imbalance_Pct",
+    "Buy_Qty",
+    "Sell_Qty",
+]
+
 
 def require_email_secrets() -> tuple[str, str, str]:
     sender = os.environ.get("SENDER_EMAIL")
@@ -103,7 +122,23 @@ def build_preopen_frame(raw_rows=None) -> pd.DataFrame:
     return df
 
 
-def send_scanner_email(subject: str, title: str, dataframe: pd.DataFrame) -> None:
+def price_bias(pct_chg: float) -> str:
+    if pct_chg > 0:
+        return "BUY"
+    if pct_chg < 0:
+        return "SELL"
+    return "NEUTRAL"
+
+
+def round_numeric(df: pd.DataFrame) -> pd.DataFrame:
+    out = df.copy()
+    for col in out.columns:
+        if pd.api.types.is_float_dtype(out[col]):
+            out[col] = out[col].round(2)
+    return out
+
+
+def send_scanner_email(subject: str, title: str, html_body: str) -> None:
     sender, password, receiver = require_email_secrets()
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
@@ -113,16 +148,18 @@ def send_scanner_email(subject: str, title: str, dataframe: pd.DataFrame) -> Non
     <html>
       <head>
         <style>
-          table {{ border-collapse: collapse; width: 100%; font-family: monospace; }}
-          th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }}
+          table {{ border-collapse: collapse; width: 100%; font-family: monospace; font-size: 13px; }}
+          th, td {{ padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }}
           th {{ background-color: #1a1a1a; color: white; }}
+          h3 {{ font-family: sans-serif; }}
+          p {{ font-family: sans-serif; color: #444; }}
         </style>
       </head>
       <body>
         <h3>{title}</h3>
-        {dataframe.to_html(index=False)}
+        {html_body}
         <br>
-        <p><i>trade_bot pre-open scanner</i></p>
+        <p><i>trade_bot high-conviction pre-open suite</i></p>
       </body>
     </html>
     """
@@ -131,17 +168,112 @@ def send_scanner_email(subject: str, title: str, dataframe: pd.DataFrame) -> Non
         server.starttls()
         server.login(sender, password)
         server.sendmail(sender, receiver, msg.as_string())
-    print(f"📨 Sent: {subject} ({len(dataframe)} rows)")
+    print(f"📨 Sent: {subject}")
 
 
-def emit_hits(scanner_name: str, subject: str, hits: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    if hits.empty:
-        print(f"[{scanner_name}] no hits — suppressing email.")
-        return hits
-    out = hits.copy()
-    for col in out.columns:
-        if pd.api.types.is_float_dtype(out[col]):
-            out[col] = out[col].round(2)
-    send_scanner_email(subject, scanner_name, out[columns])
-    print(f"[{scanner_name}] {len(out)} hits")
-    return out
+def club_high_conviction(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """
+    Merge independent scanner hits into one symbol-level high-conviction table.
+
+    Keeps a row when:
+      - >=2 scanners agree on the same Bias (BUY/SELL), or
+      - Footprint scanner alone clears the strong footprint threshold.
+    """
+    pieces = []
+    for scanner_name, hits in scanner_hits.items():
+        if hits is None or hits.empty:
+            continue
+        part = hits.copy()
+        if "Bias" not in part.columns:
+            part["Bias"] = part.get("Pct_Chg", pd.Series([0] * len(part))).map(price_bias)
+        part["Bias"] = part["Bias"].replace({"UP": "BUY", "DOWN": "SELL", "NEAR_HIGH": "BUY", "NEAR_LOW": "SELL"})
+        part = part[part["Bias"].isin(["BUY", "SELL"])]
+        if part.empty:
+            continue
+        part["Scanner"] = scanner_name
+        keep = [
+            c
+            for c in [
+                "Symbol",
+                "Bias",
+                "Scanner",
+                "IEP_Open",
+                "Pct_Chg",
+                "Matched_Vol",
+                "Footprint_Pct",
+                "Gap_Pct",
+                "Imbalance_Pct",
+                "Buy_Qty",
+                "Sell_Qty",
+            ]
+            if c in part.columns
+        ]
+        pieces.append(part[keep])
+
+    if not pieces:
+        return pd.DataFrame(columns=COMBINED_COLUMNS)
+
+    stacked = pd.concat(pieces, ignore_index=True)
+
+    rows = []
+    for symbol, grp in stacked.groupby("Symbol"):
+        buy_n = int((grp["Bias"] == "BUY").sum())
+        sell_n = int((grp["Bias"] == "SELL").sum())
+        if buy_n == 0 and sell_n == 0:
+            continue
+        if buy_n >= sell_n:
+            bias, conviction = "BUY", buy_n
+            aligned = grp[grp["Bias"] == "BUY"]
+        else:
+            bias, conviction = "SELL", sell_n
+            aligned = grp[grp["Bias"] == "SELL"]
+
+        scanners = sorted(aligned["Scanner"].unique().tolist())
+        footprint = float(aligned["Footprint_Pct"].max()) if "Footprint_Pct" in aligned else 0.0
+        strong_footprint = ("Footprint" in scanners) and footprint >= STRONG_FOOTPRINT_PCT
+        if conviction < MIN_ALIGNED_SCANNERS and not strong_footprint:
+            continue
+
+        def _max(col, default=0.0):
+            return float(aligned[col].max()) if col in aligned.columns else default
+
+        def _first(col, default=0.0):
+            return float(aligned[col].iloc[0]) if col in aligned.columns and len(aligned) else default
+
+        rows.append(
+            {
+                "Symbol": symbol,
+                "Bias": bias,
+                "Conviction": conviction,
+                "Scanners": ", ".join(scanners),
+                "IEP_Open": _first("IEP_Open"),
+                "Pct_Chg": _first("Pct_Chg"),
+                "Matched_Vol": _max("Matched_Vol"),
+                "Footprint_Pct": footprint,
+                "Gap_Pct": _first("Gap_Pct", _first("Pct_Chg")),
+                "Imbalance_Pct": _first("Imbalance_Pct"),
+                "Buy_Qty": _first("Buy_Qty"),
+                "Sell_Qty": _first("Sell_Qty"),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=COMBINED_COLUMNS)
+
+    out = pd.DataFrame(rows)
+    out = out.sort_values(by=["Conviction", "Footprint_Pct", "Matched_Vol"], ascending=False)
+    return round_numeric(out).reset_index(drop=True)
+
+
+def send_combined_email(combined: pd.DataFrame) -> None:
+    if combined.empty:
+        print("No high-conviction cross-scanner hits — suppressing email.")
+        return
+    subject = f"HIGH CONVICTION PRE-OPEN BIAS — {len(combined)} symbols"
+    body = (
+        "<p>Symbols where scanners agree on BUY/SELL bias "
+        f"(≥{MIN_ALIGNED_SCANNERS} aligned hits, or strong footprint ≥{STRONG_FOOTPRINT_PCT}%).</p>"
+        + combined[COMBINED_COLUMNS].to_html(index=False)
+    )
+    send_scanner_email(subject, "High Conviction Pre-Open Bias (All Scanners)", body)
+    print(f"✅ Combined mail: {len(combined)} symbols")
