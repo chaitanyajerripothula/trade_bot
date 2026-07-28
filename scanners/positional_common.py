@@ -21,9 +21,15 @@ SMTP_PORT = 587
 # Stock options on NSE expire on the last Thursday of the month.
 MIN_DTE_FOR_NEW_SWING = 8
 ATR_SL_MULT = 1.5
-ATR_T1_MULT = 2.5
-ATR_T2_MULT = 4.0
-MIN_ALIGNED_SCANNERS = 2
+ATR_T1_MULT = 3.0   # home-run T1
+ATR_T2_MULT = 5.0   # home-run T2
+MIN_ALIGNED_SCANNERS = 2  # Trend + power confirmation
+REQUIRE_TREND_ANCHOR = True  # structure must agree
+REQUIRE_POWER_SCANNER = True  # Momentum and/or Breakout must agree (not Pullback alone)
+MIN_ATR_PCT = 2.0  # ATR must be ≥2% of price (options need room)
+MIN_VOL_RATIO = 1.3
+MAX_HOMERUNS = 5
+POWER_SCANNERS = frozenset({"Momentum", "Breakout"})
 
 COMBINED_COLUMNS = [
     "Symbol",
@@ -265,6 +271,15 @@ def expiry_ok(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """
+    Home-run filter for monthly options swings.
+
+    Keep only symbols where:
+      - ≥3 scanners agree on CALL or PUT,
+      - Trend scanner is one of them (structure anchor),
+      - ATR ≥ MIN_ATR_PCT of price,
+      - then rank and keep top MAX_HOMERUNS.
+    """
     pieces = []
     for name, hits in scanner_hits.items():
         if hits is None or hits.empty:
@@ -292,18 +307,28 @@ def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
         else:
             continue
 
-        # Prefer the plan with best R:R among aligned hits.
+        scanners = sorted(aligned["Scanner"].unique().tolist())
+        if REQUIRE_TREND_ANCHOR and "Trend" not in scanners:
+            continue
+        if REQUIRE_POWER_SCANNER and not (POWER_SCANNERS & set(scanners)):
+            # Pullback+Trend alone is not a home run — need Momentum or Breakout thrust.
+            continue
+
         best = aligned.sort_values(by="RiskReward", ascending=False).iloc[0]
-        reasons = []
-        for _, r in aligned.iterrows():
-            reasons.append(f"[{r['Scanner']}] {r['Reason']}")
+        atr_pct = (float(best["ATR"]) / float(best["Entry"]) * 100) if best["Entry"] else 0
+        if atr_pct < MIN_ATR_PCT:
+            continue
+
+        reasons = [f"[{r['Scanner']}] {r['Reason']}" for _, r in aligned.iterrows()]
+        # Rank: confluence first, then volatility room, then R:R
+        score = conviction * 10 + atr_pct + float(best["RiskReward"])
         rows.append(
             {
                 "Symbol": symbol,
                 "Bias": bias,
                 "Option": best["Option"],
                 "Conviction": conviction,
-                "Scanners": ", ".join(sorted(aligned["Scanner"].unique())),
+                "Scanners": ", ".join(scanners),
                 "Reason": " | ".join(reasons),
                 "Entry": best["Entry"],
                 "StopLoss": best["StopLoss"],
@@ -314,51 +339,53 @@ def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "RSI": best["RSI"],
                 "DTE": best["DTE"],
                 "Expiry": best["Expiry"],
+                "ATR_Pct": round(atr_pct, 2),
+                "Score": round(score, 2),
             }
         )
 
     if not rows:
         return pd.DataFrame(columns=COMBINED_COLUMNS)
 
-    out = pd.DataFrame(rows).sort_values(
-        by=["Conviction", "RiskReward"], ascending=False
-    )
-    return out.reset_index(drop=True)
+    out = pd.DataFrame(rows).sort_values(by=["Score", "Conviction"], ascending=False)
+    out = out.head(MAX_HOMERUNS).reset_index(drop=True)
+    return out
 
 
 def send_positional_email(combined: pd.DataFrame) -> None:
     if combined.empty:
-        print("No high-conviction positional setups — suppressing email.")
+        print("No HOME RUN positional setups — suppressing email.")
         return
 
     sender, password, receiver = require_email_secrets()
     blocks = []
     for _, r in combined.iterrows():
-        direction = "bullish (buy CE)" if r["Bias"] == "CALL" else "bearish (buy PE)"
+        direction = "bullish HOME RUN (buy CE)" if r["Bias"] == "CALL" else "bearish HOME RUN (buy PE)"
+        atr_pct = r["ATR_Pct"] if "ATR_Pct" in r and pd.notna(r["ATR_Pct"]) else ""
         blocks.append(
             f"""
-            <div style="border:1px solid #ddd; padding:14px; margin:12px 0;">
-              <h3 style="margin:0 0 8px 0;">{r['Symbol']} — {r['Bias']} / {direction}</h3>
-              <p><b>Why chosen:</b> {r['Reason']}</p>
-              <p><b>Scanners aligned:</b> {r['Scanners']} (conviction {r['Conviction']})</p>
+            <div style="border:2px solid #111; padding:14px; margin:12px 0;">
+              <h3 style="margin:0 0 8px 0;">HOME RUN {r['Symbol']} — {r['Bias']} / {direction}</h3>
+              <p><b>Why this is a home run:</b> {r['Reason']}</p>
+              <p><b>Confluence:</b> {r['Scanners']} (conviction {r['Conviction']}/4)
+                 · ATR room {atr_pct}% of price · Score {r.get('Score', '')}</p>
               <p><b>Monthly options:</b> {r['Option']} · DTE {r['DTE']} · Expiry {r['Expiry']}</p>
               <table>
-                <tr><th>Entry (underlying)</th><th>Stop Loss</th><th>Target 1</th><th>Target 2</th><th>R:R (to T1)</th><th>ATR</th><th>RSI</th></tr>
+                <tr><th>Entry</th><th>Stop Loss</th><th>Target 1 (3×ATR)</th><th>Target 2 (5×ATR)</th><th>R:R</th><th>ATR</th><th>RSI</th></tr>
                 <tr>
                   <td>{r['Entry']}</td><td>{r['StopLoss']}</td><td>{r['Target1']}</td>
                   <td>{r['Target2']}</td><td>{r['RiskReward']}</td><td>{r['ATR']}</td><td>{r['RSI']}</td>
                 </tr>
               </table>
               <p style="color:#555;font-size:12px;">
-                Plan is on the cash underlying. For monthly stock options, prefer ATM/slight ITM
-                in the current monthly expiry; exit option if underlying hits SL, book partial at T1,
-                trail remainder toward T2. Avoid fresh entries inside final expiry week (DTE &lt; {MIN_DTE_FOR_NEW_SWING}).
+                Only top {MAX_HOMERUNS} names with Trend + (Momentum or Breakout),
+                ATR≥{MIN_ATR_PCT}% of price. Exit option at underlying SL; partial at T1; trail to T2.
               </p>
             </div>
             """
         )
 
-    subject = f"POSITIONAL HIGH CONVICTION — {len(combined)} monthly options swings"
+    subject = f"HOME RUN POSITIONAL — {len(combined)} monthly options swings"
     html = f"""
     <html>
       <head>
@@ -370,14 +397,14 @@ def send_positional_email(combined: pd.DataFrame) -> None:
         </style>
       </head>
       <body>
-        <h2>High Conviction Positional Scanners (NSE Monthly Stock Options)</h2>
+        <h2>HOME RUN Positional Scanners (NSE Monthly Stock Options)</h2>
         <p>
-          Stock options expire on the <b>last Thursday</b> of the month.
-          Only setups with DTE ≥ {MIN_DTE_FOR_NEW_SWING} and ≥{MIN_ALIGNED_SCANNERS} scanners
-          agreeing on CALL/PUT are included. SL=1.5×ATR, T1=2.5×ATR, T2=4×ATR.
+          Strict HOME RUN filter: Trend + (Momentum or Breakout), ATR ≥ {MIN_ATR_PCT}% of price,
+          max {MAX_HOMERUNS} names. SL=1.5×ATR · T1=3×ATR · T2=5×ATR.
+          Stock options expire last Thursday of the month.
         </p>
         {''.join(blocks)}
-        <p><i>trade_bot positional suite — separate from pre-open morning mail</i></p>
+        <p><i>trade_bot positional HOME RUN suite — separate from pre-open morning mail</i></p>
       </body>
     </html>
     """
@@ -390,4 +417,4 @@ def send_positional_email(combined: pd.DataFrame) -> None:
         server.starttls()
         server.login(sender, password)
         server.sendmail(sender, receiver, msg.as_string())
-    print(f"📨 Positional mail sent: {len(combined)} setups")
+    print(f"📨 HOME RUN positional mail sent: {len(combined)} setups")

@@ -1,35 +1,41 @@
-"""Positional pullback scanner: trend intact + RSI reset (monthly options)."""
+"""Positional pullback scanner: home-run RSI reset (monthly options)."""
 
 from __future__ import annotations
 
 import pandas as pd
 
-from scanners.positional_common import build_positional_frame, build_trade_plan, expiry_ok
+from scanners.positional_common import (
+    MIN_ATR_PCT,
+    build_positional_frame,
+    build_trade_plan,
+    expiry_ok,
+)
 
 SCANNER_NAME = "Pullback"
 
 
 def scan(df: pd.DataFrame) -> pd.DataFrame:
     df = expiry_ok(df)
+    atr_pct = df["ATR"] / df["Close"] * 100
     rows = []
 
-    # Bull pullback: still above EMA50/200, RSI was weaker 5d ago and recovering toward 45–58
     bull = df[
         (df["Close"] > df["EMA50"])
         & (df["EMA20"] > df["EMA50"])
         & (df["Close"] > df["EMA200"])
-        & (df["RSI"] >= 42)
-        & (df["RSI"] <= 58)
+        & (df["RSI"] >= 44)
+        & (df["RSI"] <= 56)
         & (df["RSI"] > df["RSI_5d_ago"])
-        & (df["RSI_5d_ago"] <= 45)
+        & (df["RSI_5d_ago"] <= 44)
         & (df["Close"] >= df["EMA20"] * 0.985)
-        & (df["VolRatio"] >= 0.9)
+        & (df["Close"] <= df["EMA20"] * 1.025)
+        & (df["VolRatio"] >= 1.1)
+        & (atr_pct >= MIN_ATR_PCT)
     ]
     for _, r in bull.iterrows():
         reason = (
-            f"Bullish pullback in uptrend: EMA20>EMA50 and price above EMA200; "
-            f"RSI reset from {r['RSI_5d_ago']:.1f} → {r['RSI']:.1f} (recovering); "
-            f"price near EMA20 support. Prefer monthly CE on continuation, not chase."
+            f"HOME-RUN bull pullback: uptrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
+            f"coiled at EMA20 with ATR room {r['ATR']/r['Close']*100:.1f}%."
         )
         rows.append(build_trade_plan(r, "CALL", reason))
 
@@ -37,18 +43,19 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
         (df["Close"] < df["EMA50"])
         & (df["EMA20"] < df["EMA50"])
         & (df["Close"] < df["EMA200"])
-        & (df["RSI"] <= 58)
-        & (df["RSI"] >= 42)
+        & (df["RSI"] <= 56)
+        & (df["RSI"] >= 44)
         & (df["RSI"] < df["RSI_5d_ago"])
-        & (df["RSI_5d_ago"] >= 55)
+        & (df["RSI_5d_ago"] >= 56)
         & (df["Close"] <= df["EMA20"] * 1.015)
-        & (df["VolRatio"] >= 0.9)
+        & (df["Close"] >= df["EMA20"] * 0.975)
+        & (df["VolRatio"] >= 1.1)
+        & (atr_pct >= MIN_ATR_PCT)
     ]
     for _, r in bear.iterrows():
         reason = (
-            f"Bearish pullback in downtrend: EMA20<EMA50 and price below EMA200; "
-            f"RSI faded from {r['RSI_5d_ago']:.1f} → {r['RSI']:.1f}; "
-            f"price near EMA20 resistance. Prefer monthly PE on failure of bounce."
+            f"HOME-RUN bear pullback: downtrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
+            f"rejected near EMA20 with ATR room {r['ATR']/r['Close']*100:.1f}%."
         )
         rows.append(build_trade_plan(r, "PUT", reason))
 

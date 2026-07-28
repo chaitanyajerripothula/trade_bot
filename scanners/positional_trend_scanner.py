@@ -1,51 +1,57 @@
-"""Positional trend scanner: EMA stack + RSI swing zone + volume (monthly options)."""
+"""Positional trend scanner: home-run EMA structure (monthly options)."""
 
 from __future__ import annotations
 
 import pandas as pd
 
-from scanners.positional_common import build_positional_frame, build_trade_plan, expiry_ok
+from scanners.positional_common import (
+    MIN_ATR_PCT,
+    build_positional_frame,
+    build_trade_plan,
+    expiry_ok,
+)
 
 SCANNER_NAME = "Trend"
 
 
 def scan(df: pd.DataFrame) -> pd.DataFrame:
     df = expiry_ok(df)
+    atr_pct = df["ATR"] / df["Close"] * 100
     rows = []
 
-    # Bullish trend → CALL
     bull = df[
         (df["Close"] > df["EMA20"])
         & (df["EMA20"] > df["EMA50"])
         & (df["Close"] > df["EMA200"])
-        & (df["RSI"] >= 50)
+        & (df["RSI"] >= 52)
         & (df["RSI"] <= 68)
-        & (df["VolRatio"] >= 1.1)
-        & (df["ExtATR"] <= 2.5)
+        & (df["VolRatio"] >= 1.3)
+        & (df["ExtATR"] <= 2.2)
+        & (atr_pct >= MIN_ATR_PCT)
     ]
     for _, r in bull.iterrows():
         reason = (
-            f"Bullish EMA stack (Close>{r['EMA20']:.1f}>{r['EMA50']:.1f}, above EMA200); "
-            f"RSI {r['RSI']:.1f} in swing buy zone 50–68; volume {r['VolRatio']:.1f}× 20D avg; "
-            f"not overextended ({r['ExtATR']:.1f} ATR from EMA20). Suited for monthly CE swing."
+            f"HOME-RUN bull structure: Close>EMA20>EMA50 and above EMA200; "
+            f"RSI {r['RSI']:.1f}; volume {r['VolRatio']:.1f}×; ATR {r['ATR']/r['Close']*100:.1f}% of price; "
+            f"extension {r['ExtATR']:.1f} ATR (not chased)."
         )
         rows.append(build_trade_plan(r, "CALL", reason))
 
-    # Bearish trend → PUT
     bear = df[
         (df["Close"] < df["EMA20"])
         & (df["EMA20"] < df["EMA50"])
         & (df["Close"] < df["EMA200"])
-        & (df["RSI"] <= 50)
+        & (df["RSI"] <= 48)
         & (df["RSI"] >= 32)
-        & (df["VolRatio"] >= 1.1)
-        & (df["ExtATR"] <= 2.5)
+        & (df["VolRatio"] >= 1.3)
+        & (df["ExtATR"] <= 2.2)
+        & (atr_pct >= MIN_ATR_PCT)
     ]
     for _, r in bear.iterrows():
         reason = (
-            f"Bearish EMA stack (Close<{r['EMA20']:.1f}<{r['EMA50']:.1f}, below EMA200); "
-            f"RSI {r['RSI']:.1f} in swing sell zone 32–50; volume {r['VolRatio']:.1f}× 20D avg; "
-            f"not overextended ({r['ExtATR']:.1f} ATR from EMA20). Suited for monthly PE swing."
+            f"HOME-RUN bear structure: Close<EMA20<EMA50 and below EMA200; "
+            f"RSI {r['RSI']:.1f}; volume {r['VolRatio']:.1f}×; ATR {r['ATR']/r['Close']*100:.1f}% of price; "
+            f"extension {r['ExtATR']:.1f} ATR."
         )
         rows.append(build_trade_plan(r, "PUT", reason))
 

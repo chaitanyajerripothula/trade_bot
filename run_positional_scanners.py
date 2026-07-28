@@ -40,10 +40,10 @@ def main() -> None:
             scanner_hits[name] = None
 
     combined = club_positional(scanner_hits)
-    print(f"🎯 High-conviction positional clubbed: {len(combined)}")
+    print(f"🎯 HOME RUN positional clubbed: {len(combined)}")
     if not combined.empty:
-        cols = ["Symbol", "Bias", "Conviction", "Scanners", "Entry", "StopLoss", "Target1", "DTE"]
-        print(combined[cols].head(15).to_string(index=False))
+        cols = ["Symbol", "Bias", "Conviction", "Scanners", "Entry", "StopLoss", "Target1", "Target2", "ATR_Pct", "Score", "DTE"]
+        print(combined[cols].head(10).to_string(index=False))
     send_positional_email(combined)
 
 
