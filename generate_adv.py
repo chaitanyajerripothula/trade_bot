@@ -18,21 +18,70 @@ print("📡 Step 1: Requesting active F&O symbol matrix from NSE...")
 session = requests.Session()
 session.headers.update(headers)
 
-try:
-    session.get(home_url, timeout=10)
-    response = session.get(pre_open_fo_url, timeout=10)
-    
-    if response.status_code != 200:
-        raise ConnectionError(f"NSE routing handshake failed. Code: {response.status_code}")
-        
-    raw_rows = response.json().get('data', [])
-    # Extract clean list of F&O symbols
-    symbols = [row.get('metadata', {}).get('symbol','').strip() for row in raw_rows if row.get('metadata', {}).get('symbol')]
-    symbols = list(set(filter(None, symbols))) # Remove blanks and duplicates
-    
-except Exception as e:
-    print(f"🚨 Network Handshake Refused by Exchange: {e}")
-    raise SystemExit(e)
+FO_LOT_CSV = "https://archives.nseindia.com/content/fo/fo_mktlots.csv"
+
+
+def fetch_fo_symbols(sess):
+    """Try pre-open FO API with retries, then archives lot-size CSV."""
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            sess.get(home_url, timeout=15)
+            response = sess.get(pre_open_fo_url, timeout=15)
+            if response.status_code != 200:
+                raise ConnectionError(f"NSE pre-open HTTP {response.status_code}")
+            raw_rows = response.json().get("data", [])
+            symbols = [
+                row.get("metadata", {}).get("symbol", "").strip()
+                for row in raw_rows
+                if row.get("metadata", {}).get("symbol")
+            ]
+            symbols = list(set(filter(None, symbols)))
+            if symbols:
+                print(f"✅ NSE pre-open returned {len(symbols)} symbols (attempt {attempt})")
+                return symbols
+            raise ConnectionError("NSE pre-open returned empty symbol list")
+        except Exception as err:
+            last_err = err
+            print(f"⚠️ NSE pre-open attempt {attempt}/3 failed: {err}")
+            import time
+            time.sleep(2 * attempt)
+
+    # Fallback: official FO market-lot CSV (often reachable when API is blocked)
+    try:
+        print("↩️ Falling back to archives fo_mktlots.csv ...")
+        sess.get(home_url, timeout=15)
+        csv_resp = sess.get(FO_LOT_CSV, timeout=20)
+        csv_resp.raise_for_status()
+        from io import StringIO
+        lot_df = pd.read_csv(StringIO(csv_resp.text), skiprows=4)
+        # Typical columns include SYMBOL under varying names
+        col = next((c for c in lot_df.columns if str(c).strip().upper() == "SYMBOL"), None)
+        if col is None:
+            col = lot_df.columns[1] if len(lot_df.columns) > 1 else lot_df.columns[0]
+        symbols = (
+            lot_df[col]
+            .astype(str)
+            .str.strip()
+            .replace({"": None, "nan": None, "Symbol": None, "SYMBOL": None})
+            .dropna()
+            .unique()
+            .tolist()
+        )
+        # Drop index underlyings that are not equity tickers on Yahoo .NS
+        skip = {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYNXT50"}
+        symbols = [s for s in symbols if s and s.upper() not in skip and not s.startswith("-")]
+        if symbols:
+            print(f"✅ Lot-size CSV returned {len(symbols)} symbols")
+            return symbols
+    except Exception as err:
+        last_err = err
+        print(f"⚠️ Lot-size CSV fallback failed: {err}")
+
+    raise SystemExit(f"🚨 Could not obtain F&O symbol universe: {last_err}")
+
+
+symbols = fetch_fo_symbols(session)
 
 # 2. Reformat Symbols for Yahoo Finance Mapping (Requires ".NS" suffix)
 yf_tickers = [f"{sym}.NS" for sym in symbols]
