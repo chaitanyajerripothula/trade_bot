@@ -83,7 +83,7 @@ jobs:
         fi
         python run_morning_scanners.py
 
-    - name: Positional Phase - ShortHold + NextDay3
+    - name: Positional Phase - ShortHold + Fifteen60 + NextDay3
       if: steps.phase.outputs.phase == 'positional'
       env:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
@@ -98,4 +98,5 @@ jobs:
         python run_short_hold_8_scanner.py
         python run_short_hold_12_scanner.py
         python run_short_hold_15_scanner.py
+        python run_fifteen_60_scanner.py
         python run_next_day_3_scanner.py

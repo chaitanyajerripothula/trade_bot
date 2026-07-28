@@ -227,7 +227,7 @@ class FamilyScanner:
         frame = frame if frame is not None else build_live_feature_frame(label=self.name)
         if frame.empty:
             return pd.DataFrame()
-        p = clf.predict_proba(frame[feats])[:, 1]
+        p = clf.predict_proba(frame[feats].to_numpy())[:, 1]
         order = np.argsort(-p)
         take = [i for i in order if p[i] >= thr][:max_k]
         tgt_label = f"+{target_pct*100:.0f}%"
