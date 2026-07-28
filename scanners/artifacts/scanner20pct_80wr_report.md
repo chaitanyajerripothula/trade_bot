@@ -29,9 +29,12 @@ Generated: 2026-07-28
 Quiet days are expected. Forcing a tip every day destroys the 80% bar under a 1–2 month hold.
 
 ## Live
-- Runner: `run_twenty_pct_80wr_scanner.py` (ShortHold80)
-- Model: `scanners/artifacts/scanner20pct_80wr_model.joblib`
+- Runner: `run_short_hold_80_scanner.py` (`--dry-run` supported)
+- Alias: `run_twenty_pct_80wr_scanner.py`
+- Model: `scanners/artifacts/scanner_short_hold_80_model.joblib`
+- Policy: `scanners/artifacts/short_hold_80_policy.json`
 - Study: `scanners/artifacts/scanner_short_hold_1perday_study.json`
+- Workflow: positional phase runs ShortHold80 after home-run / hero-or-zero
 
 ## If you still want +20%
 You must allow a longer hold (~180d daily top-1 previously cleared ~89% WR) — incompatible with a 1–2 month max.

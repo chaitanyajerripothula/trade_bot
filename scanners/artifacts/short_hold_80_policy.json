@@ -1,0 +1,25 @@
+{
+  "scanner": "ShortHold80",
+  "status": "live",
+  "win_definition": "underlying MFE ≥ +10% within hold sessions",
+  "hold_trading_days": 30,
+  "hold_calendar_approx": "~1.5 months (max hold budget 1–2 months)",
+  "threshold": 0.82,
+  "max_tips_per_day": 3,
+  "validation": {
+    "backtest_wr": 0.9669,
+    "forward_wr": 0.8868,
+    "wilson_forward": 0.8510,
+    "forward_n": 380,
+    "avg_tips_per_day_forward": 1.43,
+    "approx_tips_per_month": "24–30",
+    "day_coverage_forward": 0.174
+  },
+  "not_attainable_under_same_hold_cap": [
+    "+20% at ≥80% tip WR with ≥1 tip/day",
+    "forced tip every calendar day at ≥80% tip WR"
+  ],
+  "runner": "run_short_hold_80_scanner.py",
+  "model": "scanners/artifacts/scanner_short_hold_80_model.joblib",
+  "report": "scanners/artifacts/scanner20pct_80wr_report.md"
+}

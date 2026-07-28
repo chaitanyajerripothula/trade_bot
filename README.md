@@ -54,41 +54,35 @@ Report: `scanners/artifacts/hero_or_zero_report.md`.
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_hero_or_zero_scanner.py
 ```
 
-## TenPct80 scanner (`run_tenpct_80wr_scanner.py`)
+## ShortHold80 scanner (`run_short_hold_80_scanner.py`)
 
-**Yes — with full freedom on horizon.** One scanner targeting **≥+10%** with validated **≥80% tip WR**:
-
-| | Backtest | Forward |
-|---|---|---|
-| Tip WR | ~99.7% (n=324) | ~100% (n=65, Wilson~94%) |
-| Hold | **60 trading days** | same |
-| Rule | Calibrated GBM `P(win)≥0.84` | walk-forward held-out dates |
-
-Shorter holds (≤30d) did not clear a robust 80%. Details: `scanners/artifacts/scanner10pct_80wr_report.md`.
-
-```bash
-SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_tenpct_80wr_scanner.py
-```
-
-## TwentyPct80 / ShortHold80 (`run_twenty_pct_80wr_scanner.py`)
-
-**Max hold 1–2 months.** Under that cap, **+20% @ ≥80% tip WR is not attainable** with ≥1 tip/day (best ~58–68%).
-
-Shipped instead — best rule that clears 80% inside ~1.5 months:
+Primary positional short-hold scanner under a **1–2 month** max hold:
 
 | | Backtest | Forward |
 |---|---|---|
 | Target | **+10% MFE** | same |
-| Hold | **30 trading days** | same |
+| Hold | **30 trading days** (~1.5 months) | same |
 | Tip WR | **~96.7%** | **~88.7%** (Wilson~85%) |
-| Frequency | ~1.1 tips/day avg | **~1.4 tips/day avg** |
+| Signals | ~1.1 tips/day avg | **~1.4 tips/day ≈ 24–30 / month** |
 | Rule | Calibrated GBM `P≥0.82` (max 3) | walk-forward |
 
-Tips cluster (~17% of days fire); quiet days are normal. Forcing one tip every calendar day drops forward WR to ~57–61%. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
+Tips cluster (~17% of days fire). Quiet days are normal.  
+**+20% @ 80% WR is not attainable** inside this hold cap with this frequency.
 
 ```bash
-SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_twenty_pct_80wr_scanner.py
+# production (emails)
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_80_scanner.py
+
+# local check
+python run_short_hold_80_scanner.py --dry-run
 ```
+
+Policy: `scanners/artifacts/short_hold_80_policy.json` · Report: `scanners/artifacts/scanner20pct_80wr_report.md`.  
+Alias: `run_twenty_pct_80wr_scanner.py` → same scanner.
+
+## TenPct80 scanner (`run_tenpct_80wr_scanner.py`)
+
+Older sparse research scanner for **+10% / ≤60d** (not the primary live short-hold product). Prefer **ShortHold80** above.
 
 ## Study: +20% in 15 days @ 80% tip WR?
 
