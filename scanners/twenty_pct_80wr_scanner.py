@@ -184,7 +184,7 @@ def scan(df: pd.DataFrame | None = None) -> pd.DataFrame:
     frame = df if df is not None else build_live_feature_frame()
     if frame.empty:
         return pd.DataFrame()
-    x = frame[feats].to_numpy()
+    x = frame[feats]
     p = clf.predict_proba(x)[:, 1]
     order = np.argsort(-p)
     hits = []
