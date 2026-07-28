@@ -3,7 +3,7 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — ShortHold family (≥80% tip WR, 1–2 month holds)
+- **Positional** — ShortHold family + NextDay3 (≥80% tip WR)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
@@ -43,6 +43,25 @@ python run_short_hold_15_scanner.py --dry-run
 
 Report: `scanners/artifacts/short_hold_family_report.md`
 
+## NextDay3 (next session ≥3% from open)
+
+EOD tip for **tomorrow**: stock makes ≥**3%** excursion from the open in **either** direction  
+(`max(open→high, open→low) ≥ 3%`). Bias=`MOVE` — direction is **not** part of the 80% edge.
+
+| | Backtest | Forward |
+|---|---|---|
+| Tip WR | **~93%** | **~85%** (Wilson~71%) |
+| Rule | Calibrated GBM `P≥0.82` (max 3) | walk-forward |
+| Frequency | — | ~0.14 tips/day ≈ **~3/month** |
+
+**Not attainable @ ≥80% tip WR:** strict unidirectional (adverse ≤1–2%), and directional CALL/PUT for which side makes the 3%.
+
+```bash
+python run_next_day_3_scanner.py --dry-run
+```
+
+Report: `scanners/artifacts/next_day_3_report.md`
+
 ### ShortHold80 detail
 
 | | Backtest | Forward |
@@ -72,7 +91,7 @@ Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is
 | Job | UTC cron | IST | Body |
 |---|---|---|---|
 | Morning | `37 3 * * 1-5` | 09:07 | `{"ref":"main","inputs":{"phase":"morning"}}` |
-| Positional (ShortHold family) | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
+| Positional (ShortHold + NextDay3) | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
 | Evening | `0 11 * * 1-5` | 16:30 | `{"ref":"main","inputs":{"phase":"evening"}}` |
 
 POST `https://api.github.com/repos/chaitanyajerripothula/trade_bot/actions/workflows/main.yml/dispatches`  

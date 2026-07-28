@@ -1,0 +1,25 @@
+{
+  "scanner": "NextDay3",
+  "status": "live",
+  "side": "MOVE",
+  "win_definition": "next session max(open\u2192high, open\u2192low) \u2265 +3%",
+  "tip_timing": "EOD day t for day t+1",
+  "threshold": 0.82,
+  "max_tips_per_day": 3,
+  "validation": {
+    "backtest_wr": 0.93,
+    "forward_wr": 0.85,
+    "wilson_forward": 0.7093,
+    "forward_n": 40,
+    "avg_tips_per_day_forward": 0.1356,
+    "approx_tips_per_month": 2.8,
+    "day_coverage_forward": 0.122
+  },
+  "not_attainable": [
+    "strict unidirectional (adverse \u22641.5%) @ \u226580% tip WR",
+    "directional CALL/PUT for the \u22653% side @ \u226580% tip WR"
+  ],
+  "runner": "run_next_day_3_scanner.py",
+  "model": "scanners/artifacts/next_day_3_model.joblib",
+  "generated": "2026-07-28T12:36:19.833827+00:00"
+}

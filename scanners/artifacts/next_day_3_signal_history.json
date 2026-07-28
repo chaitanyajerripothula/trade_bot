@@ -1,0 +1,102 @@
+[
+  {
+    "Date":"2026-07-13",
+    "Symbol":"KALYANKJIL",
+    "Bias":"MOVE",
+    "Entry":510.65,
+    "Exit":525.97,
+    "StopLoss":474.62,
+    "Conviction":0.9348,
+    "Reason":"P(\u22653% from next open, either way)=93.5% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-07-09",
+    "Symbol":"KALYANKJIL",
+    "Bias":"MOVE",
+    "Entry":443.0,
+    "Exit":456.29,
+    "StopLoss":415.74,
+    "Conviction":0.8535,
+    "Reason":"P(\u22653% from next open, either way)=85.3% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-05-18",
+    "Symbol":"AMBER",
+    "Bias":"MOVE",
+    "Entry":7153.5,
+    "Exit":7368.11,
+    "StopLoss":6576.16,
+    "Conviction":0.906,
+    "Reason":"P(\u22653% from next open, either way)=90.6% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-05-14",
+    "Symbol":"KAYNES",
+    "Bias":"MOVE",
+    "Entry":3336.5,
+    "Exit":3436.6,
+    "StopLoss":3032.54,
+    "Conviction":0.9337,
+    "Reason":"P(\u22653% from next open, either way)=93.4% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-04-30",
+    "Symbol":"VEDL",
+    "Bias":"MOVE",
+    "Entry":271.55,
+    "Exit":279.7,
+    "StopLoss":182.18,
+    "Conviction":0.9213,
+    "Reason":"P(\u22653% from next open, either way)=92.1% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-04-01",
+    "Symbol":"GVT&D",
+    "Bias":"MOVE",
+    "Entry":3798.7,
+    "Exit":3912.66,
+    "StopLoss":3457.26,
+    "Conviction":0.8648,
+    "Reason":"P(\u22653% from next open, either way)=86.5% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-03-16",
+    "Symbol":"BANDHANBNK",
+    "Bias":"MOVE",
+    "Entry":162.54,
+    "Exit":167.42,
+    "StopLoss":150.58,
+    "Conviction":0.8708,
+    "Reason":"P(\u22653% from next open, either way)=87.1% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-03-09",
+    "Symbol":"PGEL",
+    "Bias":"MOVE",
+    "Entry":522.35,
+    "Exit":538.02,
+    "StopLoss":481.99,
+    "Conviction":0.8708,
+    "Reason":"P(\u22653% from next open, either way)=87.1% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-03-05",
+    "Symbol":"FORCEMOT",
+    "Bias":"MOVE",
+    "Entry":21755.0,
+    "Exit":22407.65,
+    "StopLoss":19714.25,
+    "Conviction":0.8389,
+    "Reason":"P(\u22653% from next open, either way)=83.9% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  },
+  {
+    "Date":"2026-03-04",
+    "Symbol":"FORCEMOT",
+    "Bias":"MOVE",
+    "Entry":21450.0,
+    "Exit":22093.5,
+    "StopLoss":19511.68,
+    "Conviction":0.8389,
+    "Reason":"P(\u22653% from next open, either way)=83.9% \u2265 82%. Forward WR=85.0% (Wilson=70.9%)."
+  }
+]
