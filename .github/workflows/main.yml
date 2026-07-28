@@ -95,3 +95,4 @@ jobs:
           exit 1
         fi
         python run_homerun_scanners.py
+        python run_hero_or_zero_scanner.py

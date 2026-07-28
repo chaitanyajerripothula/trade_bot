@@ -40,6 +40,20 @@ python run_positional_scanners.py
 
 Research note: predicting ±15–20% swings at ≥80% tip win-rate on technicals alone was not attainable (see `scanners/artifacts/rl_20pct_report.md`). This suite does **not** claim that — it only fires sparse lottery tickets.
 
+## Hero-or-zero ≥80% WR (`run_hero_or_zero_scanner.py`)
+
+Deep Yahoo study (`research/hero_or_zero_deep.py`) swept ATR path geometries + gates:
+
+- **≥80% train & test WR:** found (resolved-only: scratch if neither stop nor target hits)
+- **≥80% with RR≥1.5:** **none** — large-RR “heroes” do not clear 80%
+- Rules that work: **target 0.75–1.5R vs stop 1.5–2R** (RR≈0.5–0.75), hold 1–3d, gates like `thrust_bull` / `break_bull`
+
+Report: `scanners/artifacts/hero_or_zero_report.md`.
+
+```bash
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_hero_or_zero_scanner.py
+```
+
 ## On-time setup (free)
 
 Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is often late):
