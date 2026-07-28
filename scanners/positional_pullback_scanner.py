@@ -34,10 +34,12 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     ]
     for _, r in bull.iterrows():
         reason = (
-            f"HOME-RUN bull pullback: uptrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
+            f"1:20 bull pullback: uptrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
             f"coiled at EMA20 with ATR room {r['ATR']/r['Close']*100:.1f}%."
         )
-        rows.append(build_trade_plan(r, "CALL", reason))
+        plan = build_trade_plan(r, "CALL", reason)
+        if plan:
+            rows.append(plan)
 
     bear = df[
         (df["Close"] < df["EMA50"])
@@ -54,10 +56,12 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     ]
     for _, r in bear.iterrows():
         reason = (
-            f"HOME-RUN bear pullback: downtrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
+            f"1:20 bear pullback: downtrend intact; RSI {r['RSI_5d_ago']:.1f}→{r['RSI']:.1f}; "
             f"rejected near EMA20 with ATR room {r['ATR']/r['Close']*100:.1f}%."
         )
-        rows.append(build_trade_plan(r, "PUT", reason))
+        plan = build_trade_plan(r, "PUT", reason)
+        if plan:
+            rows.append(plan)
 
     return pd.DataFrame(rows)
 

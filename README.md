@@ -3,7 +3,7 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — HOME RUN swings for **NSE monthly stock options** (separate mail with reason + entry/exit)
+- **Positional** — **1:20 R:R** lottery tickets for **NSE monthly stock options** (separate mail with reason + entry/exit)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
@@ -24,13 +24,13 @@ python run_morning_scanners.py          # all → one mail
 
 ## Positional scanners (`run_positional_scanners.py`)
 
-Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 8** (else rolls to next month). **HOME RUN only**: Trend + (Momentum or Breakout), ATR ≥ 2% of price, max **5** names. Separate email with why / entry / SL / T1(3×ATR) / T2(5×ATR).
+Built for **stock options that expire on the last Thursday of the month**. Fresh swings require **DTE ≥ 15** (else rolls to next month). **1:20 only**: Trend + Momentum + Breakout must agree, ATR ≥ 2.5% of price, max **3** names. SL=1×ATR · T1=5×ATR (scale) · T2=20×ATR. Suggests OTM (~0.5×ATR) monthly options. Most tickets fail — size as lottery.
 
 | File | Signal |
 |---|---|
 | `scanners/positional_trend_scanner.py` | EMA stack + RSI zone + volume |
-| `scanners/positional_breakout_scanner.py` | 20D high/low break + volume surge |
-| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 |
+| `scanners/positional_breakout_scanner.py` | Close vs **prior** 20D high/low + volume surge |
+| `scanners/positional_pullback_scanner.py` | Trend intact + RSI reset toward EMA20 (optional 4th) |
 | `scanners/positional_momentum_scanner.py` | Strong directional day + orderly ATR |
 
 ```bash

@@ -31,11 +31,13 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     ]
     for _, r in bull.iterrows():
         reason = (
-            f"HOME-RUN bull structure: Close>EMA20>EMA50 and above EMA200; "
+            f"1:20 bull structure: Close>EMA20>EMA50 and above EMA200; "
             f"RSI {r['RSI']:.1f}; volume {r['VolRatio']:.1f}×; ATR {r['ATR']/r['Close']*100:.1f}% of price; "
             f"extension {r['ExtATR']:.1f} ATR (not chased)."
         )
-        rows.append(build_trade_plan(r, "CALL", reason))
+        plan = build_trade_plan(r, "CALL", reason)
+        if plan:
+            rows.append(plan)
 
     bear = df[
         (df["Close"] < df["EMA20"])
@@ -49,11 +51,13 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     ]
     for _, r in bear.iterrows():
         reason = (
-            f"HOME-RUN bear structure: Close<EMA20<EMA50 and below EMA200; "
+            f"1:20 bear structure: Close<EMA20<EMA50 and below EMA200; "
             f"RSI {r['RSI']:.1f}; volume {r['VolRatio']:.1f}×; ATR {r['ATR']/r['Close']*100:.1f}% of price; "
             f"extension {r['ExtATR']:.1f} ATR."
         )
-        rows.append(build_trade_plan(r, "PUT", reason))
+        plan = build_trade_plan(r, "PUT", reason)
+        if plan:
+            rows.append(plan)
 
     return pd.DataFrame(rows)
 
