@@ -83,7 +83,7 @@ jobs:
         fi
         python run_morning_scanners.py
 
-    - name: Positional Phase - ShortHold80
+    - name: Positional Phase - ShortHold family
       if: steps.phase.outputs.phase == 'positional'
       env:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
@@ -95,3 +95,6 @@ jobs:
           exit 1
         fi
         python run_short_hold_80_scanner.py
+        python run_short_hold_8_scanner.py
+        python run_short_hold_12_scanner.py
+        python run_short_hold_15_scanner.py
