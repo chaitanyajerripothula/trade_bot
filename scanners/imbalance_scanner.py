@@ -7,9 +7,9 @@ import pandas as pd
 from scanners._common import build_preopen_frame, emit_hits
 
 SCANNER_NAME = "Imbalance Scanner"
-SUBJECT = "SCANNER: Pre-Open Buy/Sell Imbalance |Imbalance| >= 40%"
-IMBALANCE_PCT_MIN = 40.0
-MIN_BOOK_QTY = 5_000
+SUBJECT = "SCANNER: Pre-Open Buy/Sell Imbalance |Imbalance| >= 55%"
+IMBALANCE_PCT_MIN = 55.0
+MIN_BOOK_QTY = 20_000
 COLUMNS = [
     "Symbol",
     "IEP_Open",
