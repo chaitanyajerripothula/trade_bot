@@ -5,3 +5,6 @@ scanners/__pycache__/
 research/__pycache__/
 # Large research dump of all family model variants (per-scanner models are committed)
 scanners/artifacts/short_hold_family_models.joblib
+# Research panel cache + multi-model dump (live next_day_3_model.joblib is committed)
+scanners/artifacts/next_day_uni_panel.joblib
+scanners/artifacts/next_day_uni_3pct_models.joblib
