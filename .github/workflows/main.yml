@@ -94,4 +94,13 @@ jobs:
           echo "Missing repository secrets: SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL"
           exit 1
         fi
+<<<<<<< HEAD
         python run_short_hold_80_scanner.py
+=======
+        python run_homerun_scanners.py
+        python run_hero_or_zero_scanner.py
+        python run_short_hold_80_scanner.py
+        # aliases / research scanners (optional overlap):
+        # python run_tenpct_80wr_scanner.py   # +10%/60d sparse
+        # python run_twenty_pct_80wr_scanner.py  # alias of ShortHold80
+>>>>>>> origin/main

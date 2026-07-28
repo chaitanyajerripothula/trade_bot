@@ -1,0 +1,91 @@
+{
+  "version": 3,
+  "created_utc": "2026-07-28T10:12:36.400140+00:00",
+  "objective": {
+    "target_move": 0.15,
+    "horizon_trading_days": [
+      15,
+      30
+    ],
+    "label": "MFE within 30 trading days \u2265 \u00b115%",
+    "target_win_rate": 0.8,
+    "note": "Occurrence of \u22651 mover in universe \u2260 tip win-rate. 80% tip precision not attained for \u00b115%/30d."
+  },
+  "meta": {
+    "symbols": 210,
+    "rows": 193505,
+    "call_base_rate": "23.02%",
+    "put_base_rate": "10.90%",
+    "train_rows": 133718,
+    "test_rows": 59787,
+    "call_auc": 0.6858,
+    "put_auc": 0.6322,
+    "call_best_thr": {
+      "thr": 0.6,
+      "test_n": 21,
+      "test_wr": 0.5714285714285714,
+      "recall": 0.001225865767698437
+    },
+    "put_best_thr": {
+      "thr": 0.27499999999999997,
+      "test_n": 1558,
+      "test_wr": 0.23234916559691912,
+      "recall": 0.06205005142269455
+    },
+    "occurrence_note": "~23% of F&O day-rows realize +15% MFE in \u226430 sessions; nearly every month has multiple such names. That does not yield 80% alert precision."
+  },
+  "live_policy": {
+    "mode": "max_precision_15pct",
+    "strict_80_attainable": false,
+    "reason": "Walk-forward tip precision tops out well below 80% for \u00b115% in \u226430d. Scanner uses best calibrated threshold with usable sample size.",
+    "CALL": {
+      "thr": 0.44999999999999996,
+      "test_n": 1367,
+      "test_wr": 0.45062179956108267,
+      "recall": 0.06292777607518643
+    },
+    "PUT": {
+      "thr": 0.27499999999999997,
+      "test_n": 1558,
+      "test_wr": 0.23234916559691912,
+      "recall": 0.06205005142269455
+    },
+    "max_alerts": 5
+  },
+  "calibrated_thresholds": {
+    "CALL": {
+      "thr": 0.44999999999999996,
+      "test_n": 1367,
+      "test_wr": 0.45062179956108267,
+      "recall": 0.06292777607518643
+    },
+    "PUT": {
+      "thr": 0.27499999999999997,
+      "test_n": 1558,
+      "test_wr": 0.23234916559691912,
+      "recall": 0.06205005142269455
+    }
+  },
+  "feature_cols": [
+    "trend",
+    "rsi",
+    "atr_pct",
+    "vol_ratio",
+    "ext_atr",
+    "mom5",
+    "mom20",
+    "mom60",
+    "break_sig",
+    "dist_52w_high",
+    "dist_52w_low",
+    "gap_pct",
+    "inside_compression",
+    "vol_z",
+    "rsi_slope"
+  ],
+  "rules": [],
+  "models": {
+    "CALL": "scanners/artifacts/rl_20pct_call_model.joblib",
+    "PUT": "scanners/artifacts/rl_20pct_put_model.joblib"
+  }
+}
