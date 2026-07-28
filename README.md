@@ -36,6 +36,9 @@ Only positional scanner. Max hold **1–2 months**:
 
 Tips cluster (~17% of days fire). Quiet days are normal.
 
+Each run prints/emails the **last 10 signals** with Bias, Entry, Exit (+10% target), and Reason  
+(`scanners/artifacts/short_hold_80_signal_history.json`).
+
 ```bash
 # production (emails)
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_80_scanner.py
