@@ -1,0 +1,860 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "evening_adv_generation_pipeline",
+        "label": "Evening ADV Generation Pipeline",
+        "nodes": [
+          "_github_workflows_main_evening_phase",
+          "generate_adv_nse_handshake",
+          "generate_adv_yahoo_finance_adv",
+          "generate_adv_fno_adv_csv"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.95,
+        "source_file": ".github/workflows/main.yml"
+      },
+      {
+        "id": "morning_preopen_alert_flow",
+        "label": "Morning Pre-Open Monitor and Email Alert Flow",
+        "nodes": [
+          "_github_workflows_main_morning_phase",
+          "pre_open_monitor_main",
+          "pre_open_monitor_nse_handshake",
+          "pre_open_monitor_adv_lookup",
+          "pre_open_monitor_footprint_ratio",
+          "pre_open_monitor_send_alert_email"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.95,
+        "source_file": "pre_open_monitor.py"
+      },
+      {
+        "id": "shared_fno_adv_csv_contract",
+        "label": "Shared fno_adv.csv Producer-Consumer Contract",
+        "nodes": [
+          "generate_adv_fno_adv_csv",
+          "pre_open_monitor_fno_adv_csv_contract",
+          "pre_open_monitor_adv_lookup",
+          "_github_workflows_main_evening_phase"
+        ],
+        "relation": "form",
+        "confidence": "INFERRED",
+        "confidence_score": 0.95,
+        "source_file": "generate_adv.py"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "generate_adv.py",
+      "file_type": "code",
+      "source_file": "generate_adv.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "generate_adv",
+      "community": 4,
+      "norm_label": "generate_adv.py"
+    },
+    {
+      "label": "pre_open_monitor.py",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "pre_open_monitor",
+      "community": 3,
+      "norm_label": "pre_open_monitor.py"
+    },
+    {
+      "label": "send_alert_email()",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": "L23",
+      "_origin": "ast",
+      "id": "pre_open_monitor_send_alert_email",
+      "community": 3,
+      "norm_label": "send_alert_email()"
+    },
+    {
+      "label": "trade_bot",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_trade_bot",
+      "community": 0,
+      "norm_label": "trade_bot"
+    },
+    {
+      "label": "execute_suite Job",
+      "file_type": "code",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "_github_workflows_main_execute_suite",
+      "community": 0,
+      "norm_label": "execute_suite job"
+    },
+    {
+      "label": "Evening Phase - Harvest and Commit Rolling 20-Day ADV",
+      "file_type": "code",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "_github_workflows_main_evening_phase",
+      "community": 0,
+      "norm_label": "evening phase - harvest and commit rolling 20-day adv"
+    },
+    {
+      "label": "Morning Phase - Scan Pre-Open with Dynamic Offset",
+      "file_type": "code",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "_github_workflows_main_morning_phase",
+      "community": 3,
+      "norm_label": "morning phase - scan pre-open with dynamic offset"
+    },
+    {
+      "label": "ADV Calculation Cron (0 11 * * 1-5 UTC)",
+      "file_type": "code",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "_github_workflows_main_adv_cron",
+      "community": 0,
+      "norm_label": "adv calculation cron (0 11 * * 1-5 utc)"
+    },
+    {
+      "label": "Live Monitoring Cron (37 3 * * 1-5 UTC)",
+      "file_type": "code",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "_github_workflows_main_monitor_cron",
+      "community": 3,
+      "norm_label": "live monitoring cron (37 3 * * 1-5 utc)"
+    },
+    {
+      "label": "GitHub Actions Schedule Branching",
+      "file_type": "rationale",
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Single workflow job branches on github.event.schedule so evening ADV harvest (cron 0 11) and morning pre-open scan (cron 37 3 or workflow_dispatch) share one runner definition without duplicate jobs.",
+      "id": "_github_workflows_main_schedule_branching",
+      "community": 0,
+      "norm_label": "github actions schedule branching"
+    },
+    {
+      "label": "NSE API Handshake (home then pre-open FO)",
+      "file_type": "code",
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "generate_adv_nse_handshake",
+      "community": 2,
+      "norm_label": "nse api handshake (home then pre-open fo)"
+    },
+    {
+      "label": "Active F&O Symbol Matrix",
+      "file_type": "code",
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "generate_adv_fo_symbol_matrix",
+      "community": 2,
+      "norm_label": "active f&o symbol matrix"
+    },
+    {
+      "label": "Yahoo Finance 20-Day ADV Calculation",
+      "file_type": "code",
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "generate_adv_yahoo_finance_adv",
+      "community": 1,
+      "norm_label": "yahoo finance 20-day adv calculation"
+    },
+    {
+      "label": "fno_adv.csv (Symbol, 20Day_ADV)",
+      "file_type": "code",
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "generate_adv_fno_adv_csv",
+      "community": 1,
+      "norm_label": "fno_adv.csv (symbol, 20day_adv)"
+    },
+    {
+      "label": "45-Day Lookback for 20 Trading Sessions",
+      "file_type": "rationale",
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A 45-day calendar lookback is used so weekends and exchange holidays still yield at least ~20 completed sessions; rows with fewer than 15 volume points are dropped for mean safety.",
+      "id": "generate_adv_45day_lookback",
+      "community": 1,
+      "norm_label": "45-day lookback for 20 trading sessions"
+    },
+    {
+      "label": "pre_open_monitor __main__ Entrypoint",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_main",
+      "community": 2,
+      "norm_label": "pre_open_monitor __main__ entrypoint"
+    },
+    {
+      "label": "NSE Pre-Open FO API Handshake",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_nse_handshake",
+      "community": 2,
+      "norm_label": "nse pre-open fo api handshake"
+    },
+    {
+      "label": "ADV Lookup from fno_adv.csv",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_adv_lookup",
+      "community": 1,
+      "norm_label": "adv lookup from fno_adv.csv"
+    },
+    {
+      "label": "Dynamic ADV Fallback via Yahoo Finance",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_dynamic_adv_fallback",
+      "community": 1,
+      "norm_label": "dynamic adv fallback via yahoo finance"
+    },
+    {
+      "label": "Institutional Footprint Ratio Filter (>=5%)",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_footprint_ratio",
+      "community": 2,
+      "norm_label": "institutional footprint ratio filter (>=5%)"
+    },
+    {
+      "label": "SMTP Gmail Alert Path",
+      "file_type": "code",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_smtp_path",
+      "community": 3,
+      "norm_label": "smtp gmail alert path"
+    },
+    {
+      "label": "Shared fno_adv.csv Data Contract",
+      "file_type": "concept",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_fno_adv_csv_contract",
+      "community": 1,
+      "norm_label": "shared fno_adv.csv data contract"
+    },
+    {
+      "label": "5% Footprint Conviction Threshold",
+      "file_type": "rationale",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "High-conviction alerts fire only when Matched_Vol / 20Day_ADV * 100 >= 5.0; otherwise email transmission is suppressed to avoid noise.",
+      "id": "pre_open_monitor_five_pct_threshold",
+      "community": 2,
+      "norm_label": "5% footprint conviction threshold"
+    },
+    {
+      "label": "Dual-Phase Institutional Pre-Open Suite",
+      "file_type": "concept",
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "pre_open_monitor_dual_phase_suite",
+      "community": 0,
+      "norm_label": "dual-phase institutional pre-open suite"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "pre_open_monitor.py",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pre_open_monitor",
+      "target": "pre_open_monitor_send_alert_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_send_alert_email",
+      "target": "pre_open_monitor_smtp_path"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.15,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_trade_bot",
+      "target": "_github_workflows_main_execute_suite"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "AMBIGUOUS",
+      "confidence_score": 0.2,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_trade_bot",
+      "target": "pre_open_monitor_dual_phase_suite"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_execute_suite",
+      "target": "_github_workflows_main_evening_phase"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_execute_suite",
+      "target": "_github_workflows_main_morning_phase"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_evening_phase",
+      "target": "_github_workflows_main_morning_phase"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_evening_phase",
+      "target": "generate_adv_fno_adv_csv"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_evening_phase",
+      "target": "generate_adv_nse_handshake"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_evening_phase",
+      "target": "generate_adv_yahoo_finance_adv"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_evening_phase",
+      "target": "pre_open_monitor_adv_lookup"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_morning_phase",
+      "target": "pre_open_monitor_fno_adv_csv_contract"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_morning_phase",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_morning_phase",
+      "target": "pre_open_monitor_nse_handshake"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_morning_phase",
+      "target": "pre_open_monitor_send_alert_email"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_morning_phase",
+      "target": "pre_open_monitor_smtp_path"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_adv_cron",
+      "target": "_github_workflows_main_evening_phase"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_monitor_cron",
+      "target": "_github_workflows_main_morning_phase"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_schedule_branching",
+      "target": "_github_workflows_main_evening_phase"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "_github_workflows_main_schedule_branching",
+      "target": "_github_workflows_main_morning_phase"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_nse_handshake",
+      "target": "generate_adv_fo_symbol_matrix"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.55,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_nse_handshake",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_nse_handshake",
+      "target": "pre_open_monitor_nse_handshake"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_fo_symbol_matrix",
+      "target": "generate_adv_yahoo_finance_adv"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_fo_symbol_matrix",
+      "target": "pre_open_monitor_nse_handshake"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_yahoo_finance_adv",
+      "target": "generate_adv_fno_adv_csv"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_yahoo_finance_adv",
+      "target": "pre_open_monitor_dynamic_adv_fallback"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_yahoo_finance_adv",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_fno_adv_csv",
+      "target": "pre_open_monitor_adv_lookup"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_fno_adv_csv",
+      "target": "pre_open_monitor_fno_adv_csv_contract"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "generate_adv.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "generate_adv_45day_lookback",
+      "target": "generate_adv_yahoo_finance_adv"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_main",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_main",
+      "target": "pre_open_monitor_nse_handshake"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_main",
+      "target": "pre_open_monitor_send_alert_email"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_nse_handshake",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_adv_lookup",
+      "target": "pre_open_monitor_fno_adv_csv_contract"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_adv_lookup",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_dynamic_adv_fallback",
+      "target": "generate_adv_45day_lookback"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_dynamic_adv_fallback",
+      "target": "pre_open_monitor_adv_lookup"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_dynamic_adv_fallback",
+      "target": "pre_open_monitor_fno_adv_csv_contract"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_footprint_ratio",
+      "target": "pre_open_monitor_send_alert_email"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_smtp_path",
+      "target": "_github_workflows_main_morning_phase"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "pre_open_monitor.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_five_pct_threshold",
+      "target": "pre_open_monitor_footprint_ratio"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_dual_phase_suite",
+      "target": "_github_workflows_main_evening_phase"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/main.yml",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "pre_open_monitor_dual_phase_suite",
+      "target": "_github_workflows_main_morning_phase"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "evening_adv_generation_pipeline",
+      "label": "Evening ADV Generation Pipeline",
+      "nodes": [
+        "_github_workflows_main_evening_phase",
+        "generate_adv_nse_handshake",
+        "generate_adv_yahoo_finance_adv",
+        "generate_adv_fno_adv_csv"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".github/workflows/main.yml"
+    },
+    {
+      "id": "morning_preopen_alert_flow",
+      "label": "Morning Pre-Open Monitor and Email Alert Flow",
+      "nodes": [
+        "_github_workflows_main_morning_phase",
+        "pre_open_monitor_main",
+        "pre_open_monitor_nse_handshake",
+        "pre_open_monitor_adv_lookup",
+        "pre_open_monitor_footprint_ratio",
+        "pre_open_monitor_send_alert_email"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "pre_open_monitor.py"
+    },
+    {
+      "id": "shared_fno_adv_csv_contract",
+      "label": "Shared fno_adv.csv Producer-Consumer Contract",
+      "nodes": [
+        "generate_adv_fno_adv_csv",
+        "pre_open_monitor_fno_adv_csv_contract",
+        "pre_open_monitor_adv_lookup",
+        "_github_workflows_main_evening_phase"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "generate_adv.py"
+    }
+  ],
+  "built_at_commit": "17cdb4ca13758f5c06de494353dbfe02989ee33e"
+}

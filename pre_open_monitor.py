@@ -11,9 +11,9 @@ import yfinance as yf
 # ==========================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "chaitanyajerripothula95@gmail.com" #os.environ.get("SENDER_EMAIL")
-SENDER_PASSWORD = "ijxntulrcisxybqu" #os.environ.get("SENDER_PASSWORD")
-RECEIVER_EMAIL = "chaitanyajerripothula95@gmail.com" #os.environ.get("RECEIVER_EMAIL")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
+SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD")
+RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -21,6 +21,11 @@ headers = {
 }
 
 def send_alert_email(dataframe_html):
+    if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
+        raise SystemExit(
+            "Missing SENDER_EMAIL, SENDER_PASSWORD, or RECEIVER_EMAIL environment variables."
+        )
+
     msg = MIMEMultipart('alternative')
     msg['Subject'] = "🔥 SYSTEM OVERRIDE: HIGH CONVICTION PRE-OPEN TARGETS"
     msg['From'] = SENDER_EMAIL
@@ -55,15 +60,29 @@ if __name__ == "__main__":
     session.headers.update(headers)
 
     # 1. Pull Live Active F&O Tickers from Exchange Match Engine
-    try:
-        session.get("https://www.nseindia.com/", timeout=10)
-        response = session.get("https://www.nseindia.com/api/market-data-pre-open?key=FO", timeout=10)
-        if response.status_code != 200:
-            raise ConnectionError(f"NSE API rejected connection with code: {response.status_code}")
-        
-        raw_rows = response.json().get('data', [])
-    except Exception as e:
-        raise SystemExit(f"🚨 Failed to establish exchange connection handshake: {e}")
+    raw_rows = None
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            session.get("https://www.nseindia.com/", timeout=15)
+            response = session.get(
+                "https://www.nseindia.com/api/market-data-pre-open?key=FO",
+                timeout=15,
+            )
+            if response.status_code != 200:
+                raise ConnectionError(f"NSE API rejected connection with code: {response.status_code}")
+            raw_rows = response.json().get("data", [])
+            if not raw_rows:
+                raise ConnectionError("NSE pre-open returned empty data")
+            break
+        except Exception as e:
+            last_err = e
+            print(f"⚠️ NSE pre-open attempt {attempt}/3 failed: {e}")
+            import time
+            time.sleep(2 * attempt)
+
+    if raw_rows is None:
+        raise SystemExit(f"🚨 Failed to establish exchange connection handshake: {last_err}")
 
     # 2. Structural Guardrail: Validate or Dynamic-Build the ADV Database
     if os.path.exists("fno_adv.csv"):

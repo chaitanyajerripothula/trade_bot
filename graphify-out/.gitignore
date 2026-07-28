@@ -1,0 +1,12 @@
+cache/
+20*/
+.graphify_python
+.graphify_root
+.graphify_detect.json
+.graphify_ast.json
+.graphify_chunk_*.json
+.graphify_semantic.json
+.graphify_extract.json
+.graphify_analysis.json
+.graphify_labels.json.sig
+cost.json
