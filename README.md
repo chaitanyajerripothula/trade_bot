@@ -38,6 +38,16 @@ python run_positional_scanners.py
 python -m scanners.positional_trend_scanner
 ```
 
+## RL swing scanner (`run_rl_20pct_scanner.py`)
+
+Yahoo-trained tabular Q-learning + calibrated HistGBM for **±15% in ≤30 trading days** (15–30d window).
+
+**Occurrence vs tip win-rate:** ~23% of F&O day-rows later print +15% MFE within 30 sessions, so “at least one stock moves 15% this month” is normal. That is not an 80% tip win-rate — walk-forward alert precision tops out well below 80% on technicals. Live mail uses the best calibrated threshold and prints validated OOS precision (see `scanners/artifacts/rl_20pct_report.md`). Retrain: `python research/rl_20pct_train.py`.
+
+```bash
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_rl_20pct_scanner.py
+```
+
 ## On-time setup (free)
 
 Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is often late):

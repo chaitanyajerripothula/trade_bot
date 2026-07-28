@@ -95,3 +95,4 @@ jobs:
           exit 1
         fi
         python run_positional_scanners.py
+        python run_rl_20pct_scanner.py
