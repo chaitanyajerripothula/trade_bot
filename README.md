@@ -54,6 +54,15 @@ Report: `scanners/artifacts/hero_or_zero_report.md`.
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_hero_or_zero_scanner.py
 ```
 
+## Study: +20% in 15 days @ 80% tip WR?
+
+Focused walk-forward research (`scanners/artifacts/move20_in_15d_report.md`):
+
+- Base rate ≈ **4.7%** (test ≈ **2.6%**)
+- Best calibrated tip precision ≈ **21%**
+- Best technical gate ≈ **16%**
+- **≥80% tip WR: not attainable** on Yahoo F&O technicals
+
 ## On-time setup (free)
 
 Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is often late):
