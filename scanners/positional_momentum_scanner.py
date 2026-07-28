@@ -33,10 +33,12 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     for _, r in bull.iterrows():
         day_chg = (r["Close"] - r["PrevClose"]) / r["PrevClose"] * 100
         reason = (
-            f"HOME-RUN thrust +{day_chg:.1f}% on {r['VolRatio']:.1f}× volume; "
+            f"1:20 thrust +{day_chg:.1f}% on {r['VolRatio']:.1f}× volume; "
             f"EMA20>EMA50; RSI {r['RSI']:.1f}; ATR {r['ATR']/r['Close']*100:.1f}% — expansion CE."
         )
-        rows.append(build_trade_plan(r, "CALL", reason))
+        plan = build_trade_plan(r, "CALL", reason)
+        if plan:
+            rows.append(plan)
 
     bear = df[
         (chg <= -1.5)
@@ -51,10 +53,12 @@ def scan(df: pd.DataFrame) -> pd.DataFrame:
     for _, r in bear.iterrows():
         day_chg = (r["Close"] - r["PrevClose"]) / r["PrevClose"] * 100
         reason = (
-            f"HOME-RUN thrust {day_chg:.1f}% on {r['VolRatio']:.1f}× volume; "
+            f"1:20 thrust {day_chg:.1f}% on {r['VolRatio']:.1f}× volume; "
             f"EMA20<EMA50; RSI {r['RSI']:.1f}; ATR {r['ATR']/r['Close']*100:.1f}% — expansion PE."
         )
-        rows.append(build_trade_plan(r, "PUT", reason))
+        plan = build_trade_plan(r, "PUT", reason)
+        if plan:
+            rows.append(plan)
 
     return pd.DataFrame(rows)
 

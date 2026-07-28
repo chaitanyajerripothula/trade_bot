@@ -19,17 +19,22 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 # Stock options on NSE expire on the last Thursday of the month.
-MIN_DTE_FOR_NEW_SWING = 8
-ATR_SL_MULT = 1.5
-ATR_T1_MULT = 3.0   # home-run T1
-ATR_T2_MULT = 5.0   # home-run T2
-MIN_ALIGNED_SCANNERS = 2  # Trend + power confirmation
-REQUIRE_TREND_ANCHOR = True  # structure must agree
-REQUIRE_POWER_SCANNER = True  # Momentum and/or Breakout must agree (not Pullback alone)
-MIN_ATR_PCT = 2.0  # ATR must be ≥2% of price (options need room)
-MIN_VOL_RATIO = 1.3
-MAX_HOMERUNS = 5
+# Red-team 1:20 design: tiny defined risk, asymmetric moonshot target.
+MIN_DTE_FOR_NEW_SWING = 15  # 20R moves need calendar time
+ATR_SL_MULT = 1.0           # risk unit = 1×ATR
+ATR_T1_MULT = 5.0           # scale-out at 1:5 (optional)
+ATR_T2_MULT = 20.0          # true home-run target = 1:20 vs SL
+TARGET_RR = 20.0
+MIN_ALIGNED_SCANNERS = 3    # Trend + Momentum + Breakout (Pullback optional 4th)
+REQUIRE_TREND_ANCHOR = True
+REQUIRE_POWER_SCANNER = True
+# Both power scanners must agree — Trend+Pullback+one-power is not enough for 1:20.
+REQUIRE_BOTH_POWER = True
+MIN_ATR_PCT = 2.5           # need real volatility for large R multiples
+MIN_VOL_RATIO = 1.5
+MAX_HOMERUNS = 3            # very few lottery tickets
 POWER_SCANNERS = frozenset({"Momentum", "Breakout"})
+REQUIRED_SCANNERS = frozenset({"Trend", "Momentum", "Breakout"})
 
 COMBINED_COLUMNS = [
     "Symbol",
@@ -104,6 +109,39 @@ def suggest_atm_strike(price: float) -> float:
     return round(price / step) * step
 
 
+def suggest_homerun_strike(
+    price: float, bias: str, atr: float | None = None
+) -> tuple[float, float, str]:
+    """
+    For 1:20 asymmetric payoff, prefer ~0.5×ATR OTM (rounded to strike step).
+    Fixed 2-step OTM is too shallow on high-priced names and too deep on cheap ones.
+    """
+    atm = suggest_atm_strike(price)
+    if price >= 2000:
+        step = 50
+    elif price >= 500:
+        step = 10
+    elif price >= 100:
+        step = 5
+    else:
+        step = 2.5
+    # At least 2 steps OTM; scale with ATR so lottery premium needs a real move.
+    atr_steps = max(2, int(round((0.5 * float(atr)) / step))) if atr and atr > 0 else 2
+    if bias == "CALL":
+        otm = atm + atr_steps * step
+        return (
+            atm,
+            otm,
+            f"CALL OTM ~{otm:.0f} (ATM {atm:.0f}, ~{atr_steps} steps) — lottery for ~1:20 premium",
+        )
+    otm = max(step, atm - atr_steps * step)
+    return (
+        atm,
+        otm,
+        f"PUT OTM ~{otm:.0f} (ATM {atm:.0f}, ~{atr_steps} steps) — lottery for ~1:20 premium",
+    )
+
+
 def load_fo_symbols() -> list[str]:
     if os.path.exists("fno_adv.csv"):
         df = pd.read_csv("fno_adv.csv")
@@ -144,10 +182,13 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) ->
     return tr.rolling(period).mean()
 
 
-def build_positional_frame(period: str = "6mo") -> pd.DataFrame:
+def build_positional_frame(period: str = "1y") -> pd.DataFrame:
     """
     Batch Yahoo daily bars for F&O equities and compute swing indicators.
     One row per symbol (latest complete session).
+
+    Use ≥1y so EMA200 is a real 200-span average (6mo ≈126 bars silently
+    fell back to EMA50 and weakened the Trend filter).
     """
     symbols = load_fo_symbols()
     tickers = [f"{s}.NS" for s in symbols]
@@ -187,6 +228,9 @@ def build_positional_frame(period: str = "6mo") -> pd.DataFrame:
             vol_ma20 = vol.rolling(20).mean()
             high20 = high.rolling(20).max()
             low20 = low.rolling(20).min()
+            # Prior 20D extremes exclude today — avoids breakout look-ahead bias.
+            prev_high20 = high.shift(1).rolling(20).max()
+            prev_low20 = low.shift(1).rolling(20).min()
 
             i = -1
             px = float(close.iloc[i])
@@ -194,6 +238,8 @@ def build_positional_frame(period: str = "6mo") -> pd.DataFrame:
             rsi_v = float(rsi.iloc[i]) if pd.notna(rsi.iloc[i]) else np.nan
             if np.isnan(atr_v) or atr_v <= 0 or np.isnan(rsi_v):
                 continue
+            ph20 = float(prev_high20.iloc[i]) if pd.notna(prev_high20.iloc[i]) else float(high20.iloc[i])
+            pl20 = float(prev_low20.iloc[i]) if pd.notna(prev_low20.iloc[i]) else float(low20.iloc[i])
 
             rows.append(
                 {
@@ -211,6 +257,8 @@ def build_positional_frame(period: str = "6mo") -> pd.DataFrame:
                     "ATR": atr_v,
                     "High20": float(high20.iloc[i]),
                     "Low20": float(low20.iloc[i]),
+                    "PrevHigh20": ph20,
+                    "PrevLow20": pl20,
                     "PrevClose": float(close.iloc[-2]),
                     "RSI_5d_ago": float(rsi.iloc[-6]) if len(rsi) >= 6 and pd.notna(rsi.iloc[-6]) else np.nan,
                     "EMA20_5d_ago": float(ema20.iloc[-6]) if len(ema20) >= 6 else np.nan,
@@ -230,27 +278,42 @@ def build_positional_frame(period: str = "6mo") -> pd.DataFrame:
     return df
 
 
-def build_trade_plan(row: pd.Series, bias: str, reason: str) -> dict:
-    """ATR-based entry/SL/targets for monthly options swing on the underlying."""
+def build_trade_plan(row: pd.Series, bias: str, reason: str) -> dict | None:
+    """
+    Asymmetric 1:20 plan on the underlying.
+
+    Risk = 1×ATR. Home-run target = 20×ATR (R:R 1:20). T1 at 5×ATR is an
+    optional scale-out so the whole ticket is not binary moonshot-or-zero.
+
+    Returns None when geometry is impossible (e.g. PUT T2 would be ≤0).
+    """
     entry = float(row["Close"])
     atr = float(row["ATR"])
+    if atr <= 0 or entry <= 0:
+        return None
     if bias == "CALL":
         stop = entry - ATR_SL_MULT * atr
         t1 = entry + ATR_T1_MULT * atr
         t2 = entry + ATR_T2_MULT * atr
+        if stop <= 0:
+            return None
     else:
         stop = entry + ATR_SL_MULT * atr
         t1 = entry - ATR_T1_MULT * atr
         t2 = entry - ATR_T2_MULT * atr
+        # 20×ATR below spot can go through zero on cheap/high-ATR names — skip.
+        if t2 <= 0 or t1 <= 0:
+            return None
     risk = abs(entry - stop)
-    reward = abs(t1 - entry)
-    rr = round(reward / risk, 2) if risk > 0 else 0
-    atm = suggest_atm_strike(entry)
-    option = f"{bias} ATM ~{atm:.0f} (monthly {row['Expiry']})"
+    reward_hr = abs(t2 - entry)
+    rr = round(reward_hr / risk, 2) if risk > 0 else 0
+    if rr < TARGET_RR * 0.99:
+        return None
+    atm, otm, option = suggest_homerun_strike(entry, bias, atr=atr)
     return {
         "Symbol": row["Symbol"],
         "Bias": bias,
-        "Option": option,
+        "Option": f"{option} | monthly {row['Expiry']}",
         "Reason": reason,
         "Entry": round(entry, 2),
         "StopLoss": round(stop, 2),
@@ -262,6 +325,7 @@ def build_trade_plan(row: pd.Series, bias: str, reason: str) -> dict:
         "DTE": int(row["DTE"]),
         "Expiry": row["Expiry"],
         "ATM_Strike": atm,
+        "OTM_Strike": otm,
     }
 
 
@@ -272,13 +336,14 @@ def expiry_ok(df: pd.DataFrame) -> pd.DataFrame:
 
 def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Home-run filter for monthly options swings.
+    1:20 HOME RUN filter.
 
     Keep only symbols where:
-      - ≥3 scanners agree on CALL or PUT,
-      - Trend scanner is one of them (structure anchor),
+      - Trend + Momentum + Breakout all agree on CALL/PUT,
+      - Pullback may add a 4th confirm but cannot substitute for power,
       - ATR ≥ MIN_ATR_PCT of price,
-      - then rank and keep top MAX_HOMERUNS.
+      - plan still has ≥1:20 geometry,
+      - then keep top MAX_HOMERUNS by score.
     """
     pieces = []
     for name, hits in scanner_hits.items():
@@ -307,20 +372,25 @@ def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
         else:
             continue
 
-        scanners = sorted(aligned["Scanner"].unique().tolist())
+        scanners = set(aligned["Scanner"].unique().tolist())
         if REQUIRE_TREND_ANCHOR and "Trend" not in scanners:
             continue
-        if REQUIRE_POWER_SCANNER and not (POWER_SCANNERS & set(scanners)):
-            # Pullback+Trend alone is not a home run — need Momentum or Breakout thrust.
+        if REQUIRE_BOTH_POWER and not POWER_SCANNERS.issubset(scanners):
+            continue
+        if REQUIRE_POWER_SCANNER and not (POWER_SCANNERS & scanners):
+            continue
+        if not REQUIRED_SCANNERS.issubset(scanners):
             continue
 
         best = aligned.sort_values(by="RiskReward", ascending=False).iloc[0]
         atr_pct = (float(best["ATR"]) / float(best["Entry"]) * 100) if best["Entry"] else 0
         if atr_pct < MIN_ATR_PCT:
             continue
+        # Reject plans that somehow lost the 1:20 geometry.
+        if float(best["RiskReward"]) < TARGET_RR * 0.99:
+            continue
 
         reasons = [f"[{r['Scanner']}] {r['Reason']}" for _, r in aligned.iterrows()]
-        # Rank: confluence first, then volatility room, then R:R
         score = conviction * 10 + atr_pct + float(best["RiskReward"])
         rows.append(
             {
@@ -328,7 +398,7 @@ def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "Bias": bias,
                 "Option": best["Option"],
                 "Conviction": conviction,
-                "Scanners": ", ".join(scanners),
+                "Scanners": ", ".join(sorted(scanners)),
                 "Reason": " | ".join(reasons),
                 "Entry": best["Entry"],
                 "StopLoss": best["StopLoss"],
@@ -354,38 +424,45 @@ def club_positional(scanner_hits: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 def send_positional_email(combined: pd.DataFrame) -> None:
     if combined.empty:
-        print("No HOME RUN positional setups — suppressing email.")
+        print("No 1:20 HOME RUN positional setups — suppressing email.")
         return
 
     sender, password, receiver = require_email_secrets()
     blocks = []
     for _, r in combined.iterrows():
-        direction = "bullish HOME RUN (buy CE)" if r["Bias"] == "CALL" else "bearish HOME RUN (buy PE)"
+        direction = "bullish 1:20 HOME RUN (buy OTM CE)" if r["Bias"] == "CALL" else "bearish 1:20 HOME RUN (buy OTM PE)"
         atr_pct = r["ATR_Pct"] if "ATR_Pct" in r and pd.notna(r["ATR_Pct"]) else ""
         blocks.append(
             f"""
             <div style="border:2px solid #111; padding:14px; margin:12px 0;">
-              <h3 style="margin:0 0 8px 0;">HOME RUN {r['Symbol']} — {r['Bias']} / {direction}</h3>
-              <p><b>Why this is a home run:</b> {r['Reason']}</p>
+              <h3 style="margin:0 0 8px 0;">1:20 HOME RUN {r['Symbol']} — {r['Bias']} / {direction}</h3>
+              <p><b>Why chosen:</b> {r['Reason']}</p>
               <p><b>Confluence:</b> {r['Scanners']} (conviction {r['Conviction']}/4)
-                 · ATR room {atr_pct}% of price · Score {r.get('Score', '')}</p>
+                 · ATR room {atr_pct}% · planned R:R {r['RiskReward']}:1 · Score {r.get('Score', '')}</p>
               <p><b>Monthly options:</b> {r['Option']} · DTE {r['DTE']} · Expiry {r['Expiry']}</p>
               <table>
-                <tr><th>Entry</th><th>Stop Loss</th><th>Target 1 (3×ATR)</th><th>Target 2 (5×ATR)</th><th>R:R</th><th>ATR</th><th>RSI</th></tr>
+                <tr>
+                  <th>Entry</th><th>Stop (1×ATR)</th>
+                  <th>Scale-out T1 (5×ATR = 1:5)</th>
+                  <th>Home-run T2 (20×ATR = 1:20)</th>
+                  <th>R:R to T2</th><th>ATR</th><th>RSI</th>
+                </tr>
                 <tr>
                   <td>{r['Entry']}</td><td>{r['StopLoss']}</td><td>{r['Target1']}</td>
                   <td>{r['Target2']}</td><td>{r['RiskReward']}</td><td>{r['ATR']}</td><td>{r['RSI']}</td>
                 </tr>
               </table>
               <p style="color:#555;font-size:12px;">
-                Only top {MAX_HOMERUNS} names with Trend + (Momentum or Breakout),
-                ATR≥{MIN_ATR_PCT}% of price. Exit option at underlying SL; partial at T1; trail to T2.
+                <b>Red-team honesty:</b> T2 is a low-probability moonshot (~20 ATR). Size tiny.
+                Prefer the suggested OTM monthly option so premium payoff can approach 1:20 if T2 hits.
+                Exit if underlying tags SL. Optional partial at T1; leave a runner for T2.
+                Most tickets will stop out — that is expected for 1:20 geometry.
               </p>
             </div>
             """
         )
 
-    subject = f"HOME RUN POSITIONAL — {len(combined)} monthly options swings"
+    subject = f"1:20 HOME RUN POSITIONAL — {len(combined)} monthly options tickets"
     html = f"""
     <html>
       <head>
@@ -397,14 +474,15 @@ def send_positional_email(combined: pd.DataFrame) -> None:
         </style>
       </head>
       <body>
-        <h2>HOME RUN Positional Scanners (NSE Monthly Stock Options)</h2>
+        <h2>1:20 HOME RUN Positional Scanners (NSE Monthly Stock Options)</h2>
         <p>
-          Strict HOME RUN filter: Trend + (Momentum or Breakout), ATR ≥ {MIN_ATR_PCT}% of price,
-          max {MAX_HOMERUNS} names. SL=1.5×ATR · T1=3×ATR · T2=5×ATR.
-          Stock options expire last Thursday of the month.
+          Defined risk = <b>1×ATR</b>. Home-run target = <b>20×ATR (R:R 1:20)</b>.
+          Optional scale-out at 5×ATR. Requires <b>Trend + Momentum + Breakout</b>
+          (Pullback optional), ATR≥{MIN_ATR_PCT}% of price, DTE≥{MIN_DTE_FOR_NEW_SWING},
+          max {MAX_HOMERUNS} names. Stock options expire last Thursday of the month.
         </p>
         {''.join(blocks)}
-        <p><i>trade_bot positional HOME RUN suite — separate from pre-open morning mail</i></p>
+        <p><i>trade_bot positional 1:20 suite — separate from pre-open morning mail</i></p>
       </body>
     </html>
     """
@@ -417,4 +495,4 @@ def send_positional_email(combined: pd.DataFrame) -> None:
         server.starttls()
         server.login(sender, password)
         server.sendmail(sender, receiver, msg.as_string())
-    print(f"📨 HOME RUN positional mail sent: {len(combined)} setups")
+    print(f"📨 1:20 HOME RUN positional mail sent: {len(combined)} setups")
