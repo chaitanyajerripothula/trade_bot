@@ -1,12 +1,11 @@
 import os
 import smtplib
-import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import pandas as pd
 
-from fo_adv import PRE_OPEN_FO_URL, NSE_HOME, compute_20day_adv, make_session
+from fo_adv import compute_20day_adv, fetch_preopen_payload, make_session
 
 # ==========================================
 # Secure configuration via env variables
@@ -49,30 +48,6 @@ def send_alert_email(dataframe_html: str) -> None:
     print("📨 Transactional Mail dispatched successfully.")
 
 
-def fetch_preopen_rows(session, *, attempts: int = 2, timeout: float = 8):
-    last_err = None
-    for attempt in range(1, attempts + 1):
-        try:
-            session.get(NSE_HOME, timeout=timeout)
-            response = session.get(PRE_OPEN_FO_URL, timeout=timeout)
-            if response.status_code != 200:
-                raise ConnectionError(f"NSE API rejected connection with code: {response.status_code}")
-            text = response.text.lstrip()
-            ctype = response.headers.get("content-type", "")
-            if "json" not in ctype and not text.startswith(("{", "[")):
-                raise ConnectionError("NSE pre-open returned non-JSON body")
-            raw_rows = response.json().get("data", [])
-            if not raw_rows:
-                raise ConnectionError("NSE pre-open returned empty data")
-            return raw_rows
-        except Exception as err:
-            last_err = err
-            print(f"⚠️ NSE pre-open attempt {attempt}/{attempts} failed: {err}")
-            if attempt < attempts:
-                time.sleep(attempt)
-    raise SystemExit(f"🚨 Failed to establish exchange connection handshake: {last_err}")
-
-
 def load_or_build_adv_lookup(raw_rows) -> dict:
     if os.path.exists("fno_adv.csv"):
         print("📁 Found existing 'fno_adv.csv'. Loading lookup...")
@@ -101,7 +76,7 @@ if __name__ == "__main__":
         )
 
     session = make_session()
-    raw_rows = fetch_preopen_rows(session)
+    raw_rows = fetch_preopen_payload(session)
     adv_lookup = load_or_build_adv_lookup(raw_rows)
 
     records = []
