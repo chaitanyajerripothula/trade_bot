@@ -54,6 +54,22 @@ Report: `scanners/artifacts/hero_or_zero_report.md`.
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_hero_or_zero_scanner.py
 ```
 
+## TenPct80 scanner (`run_tenpct_80wr_scanner.py`)
+
+**Yes — with full freedom on horizon.** One scanner targeting **≥+10%** with validated **≥80% tip WR**:
+
+| | Backtest | Forward |
+|---|---|---|
+| Tip WR | ~99.7% (n=324) | ~100% (n=65, Wilson~94%) |
+| Hold | **60 trading days** | same |
+| Rule | Calibrated GBM `P(win)≥0.84` | walk-forward held-out dates |
+
+Shorter holds (≤30d) did not clear a robust 80%. Details: `scanners/artifacts/scanner10pct_80wr_report.md`.
+
+```bash
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_tenpct_80wr_scanner.py
+```
+
 ## Study: +20% in 15 days @ 80% tip WR?
 
 Focused walk-forward research (`scanners/artifacts/move20_in_15d_report.md`):
