@@ -3,7 +3,7 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — ShortHold family + NextDay3 (≥80% tip WR)
+- **Positional** — ShortHold family + Fifteen60 + NextDay3 (≥80% tip WR)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
@@ -42,6 +42,26 @@ python run_short_hold_15_scanner.py --dry-run
 ```
 
 Report: `scanners/artifacts/short_hold_family_report.md`
+
+## Fifteen60 (battle-tested +15% system)
+
+**Objective asked:** stocks for the next **30** trading days with ≥**15%** return @ ≥**80%** tip WR.  
+**Result:** that exact bar is **not attainable** (best MFE/30d tip WR ~**61%**; close-held ~50%).
+
+**Shipped:** shortest **robust** hold that clears 80% after walk-forward stress:
+
+| | Backtest | Forward | Walk-forward |
+|---|---|---|---|
+| Win | **+15% MFE / 60d** | same | mean ~97%, min ~94% |
+| Tip WR | **~99%** | **~96%** (Wilson~86%) | 2/2 folds ≥80% |
+| Rule | `P≥0.84` (max 2) | — | — |
+| Frequency | — | ~0.21 tips/day ≈ **~4/month** | — |
+
+```bash
+python run_fifteen_60_scanner.py --dry-run
+```
+
+Full battle-test: `scanners/artifacts/fifteen_30_battle_report.md`
 
 ## NextDay3 (next session ≥3% from open)
 

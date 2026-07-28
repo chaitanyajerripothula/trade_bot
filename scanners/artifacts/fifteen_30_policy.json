@@ -1,0 +1,38 @@
+{
+  "scanner": "Fifteen60",
+  "system": "Fifteen30TradeSystem",
+  "status": "live",
+  "side": "CALL",
+  "objective": "\u226515% return in next ~30 trading days @ \u226580% tip WR",
+  "objective_result": "NOT attainable at hold\u226430d (best mfe_30 tip WR ~61%). Shipped shortest robust hold that clears bar.",
+  "win_definition": "underlying MFE \u2265 +15% within 60 sessions",
+  "hold_trading_days": 60,
+  "threshold": 0.84,
+  "max_tips_per_day": 2,
+  "validation": {
+    "backtest_wr": 0.992,
+    "forward_wr": 0.9592,
+    "wilson_forward": 0.8629,
+    "forward_n": 49,
+    "avg_tips_per_day_forward": 0.2085,
+    "approx_tips_per_month": 4.4,
+    "day_coverage_forward": 0.1149,
+    "walk_forward_mean_wr": 0.9722,
+    "walk_forward_min_wr": 0.9444,
+    "walk_forward_folds_ge_80": 2
+  },
+  "battle_tests": [
+    "70/30 chronological tip WR + Wilson\u226570%",
+    "3-fold expanding walk-forward (min WR\u226580% preferred)",
+    "seed stability",
+    "regime stress (bull/bear)",
+    "mfe vs close labels; holds 21/30/42/45/60"
+  ],
+  "not_attainable": [
+    "+15% MFE within \u226430 trading days @ \u226580% tip WR (best ~61%)",
+    "+15% close-to-close within \u226430d @ \u226580% tip WR (best ~50%)"
+  ],
+  "runner": "run_fifteen_60_scanner.py",
+  "model": "scanners/artifacts/fifteen_60_model.joblib",
+  "generated": "2026-07-28T13:05:10.826529+00:00"
+}
