@@ -21,9 +21,5 @@
   ],
   "runner": "run_short_hold_80_scanner.py",
   "model": "scanners/artifacts/scanner_short_hold_80_model.joblib",
-<<<<<<< HEAD
   "report": "scanners/artifacts/short_hold_80_report.md"
-=======
-  "report": "scanners/artifacts/scanner20pct_80wr_report.md"
->>>>>>> origin/main
 }

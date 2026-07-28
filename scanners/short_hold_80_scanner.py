@@ -38,11 +38,6 @@ from scanners.positional_common import (
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_CANDIDATES = [
     ROOT / "scanners" / "artifacts" / "scanner_short_hold_80_model.joblib",
-<<<<<<< HEAD
-=======
-    ROOT / "scanners" / "artifacts" / "scanner_short_hold_1perday_model.joblib",
-    ROOT / "scanners" / "artifacts" / "scanner20pct_80wr_model.joblib",
->>>>>>> origin/main
 ]
 SCANNER_NAME = "ShortHold80"
 
@@ -289,11 +284,7 @@ def send_email(hits: pd.DataFrame, bundle: dict) -> None:
         <b>+20% at 80% WR is not attainable inside a 1–2 month hold with this frequency.</b>
       </p>
       {''.join(blocks)}
-<<<<<<< HEAD
       <p><i>See scanners/artifacts/short_hold_80_report.md</i></p>
-=======
-      <p><i>See scanners/artifacts/scanner20pct_80wr_report.md</i></p>
->>>>>>> origin/main
     </body></html>
     """
     msg = MIMEMultipart("alternative")
