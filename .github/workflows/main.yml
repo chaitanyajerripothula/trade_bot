@@ -78,4 +78,4 @@ jobs:
           echo "Missing repository secrets: SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL"
           exit 1
         fi
-        python pre_open_monitor.py
+        python run_morning_scanners.py
