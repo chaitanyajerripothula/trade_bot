@@ -1,36 +1,37 @@
-# TwentyPct80 Daily — ≥1 stock/day, ≥20% move, ≥80% tip WR
+# Short-hold scanner under max 1–2 month hold
 
 Generated: 2026-07-28
 
-## Constraint
-User requirement: **at least 1 stock tip per trading day**, while keeping **+20% MFE** and **≥80% tip WR** on backtest + forward.
+## Hard constraints
+1. Max hold **1–2 months** (~21–45 trading days; 60d = loose ceiling)
+2. Prefer **≥1 tip/day**
+3. Prefer **≥80% tip WR** and large move
 
-## Tradeoff (why the old sparse rule fails this)
-| Rule | Tips/day | Forward WR | Keeps 80%? |
-|---|---:|---:|---|
-| Old sparse thr≈0.79, hold=60 | ~0.15 | ~100% | yes, but **not 1/day** |
-| thr≈0.73, hold=60 | ~1.0 | **~68%** | **no** |
-| thr≈0.88, hold=180 | ~1.1 | ~83% | yes |
-| **daily top-1, hold=180** | **1.0** | **~88.7%** | **yes** |
-| daily top-1, hold=252 | 1.0 | ~95.3% | yes (thinner labeled fwd n=43) |
+## What is / isn’t attainable
 
-## Chosen: daily top-1 @ hold=180
-Every session tip the single highest calibrated `P(+20% MFE within 180 sessions)`.
-
-| | Backtest | Forward | Latest 20% labeled |
+| Goal | Hold cap | ≥1 tip/day | Result |
 |---|---|---|---|
-| Tip WR | **99.3%** | **88.7%** (Wilson ~82%) | **91.9%** |
-| Tips/day | **1.0** | **1.0** | **1.0** |
-| n | 688 | 115 | 161 |
+| **+20% @ 80% WR** | ≤45d | avg ≥1 | **No** — best forward ~**58%** |
+| **+20% @ 80% WR** | ≤60d | avg ≥1 | **No** — best forward ~**68%** |
+| Tip **every** calendar day @ 80% | ≤45d | forced daily top-1 | **No** — +10% top-1 ~**57–61%** |
+| **+10% @ 80% WR** | **30d** | avg ≥1.4 | **Yes — shipped** |
 
-Hold ≈ **9 months** of trading sessions. That length is the cost of keeping both **1/day** and **≥80%** for a true +20% target.
+## Shipped rule (ShortHold80)
+| | |
+|---|---|
+| Win | **+10% MFE** within **30** trading days (~1.5 months) |
+| Gate | Calibrated GBM **P ≥ 0.82** (max 3 tips) |
+| Backtest WR | **~96.7%** |
+| Forward WR | **~88.7%** (n=380, Wilson ~85%) |
+| Avg tips/day | **~1.4** |
+| Day coverage | ~**17%** of sessions fire (tips cluster) |
+
+Quiet days are expected. Forcing a tip every day destroys the 80% bar under a 1–2 month hold.
 
 ## Live
-- `run_twenty_pct_80wr_scanner.py` — always emits top-1
-- Model: `scanners/artifacts/scanner20pct_80wr_model.joblib` (`mode=daily_topk`, `k=1`, `hold=180`)
-- Study: `scanners/artifacts/scanner20pct_1perday_study.json`
+- Runner: `run_twenty_pct_80wr_scanner.py` (ShortHold80)
+- Model: `scanners/artifacts/scanner20pct_80wr_model.joblib`
+- Study: `scanners/artifacts/scanner_short_hold_1perday_study.json`
 
-## Caveats
-- Underlying MFE, not option P&L.
-- Stop in email (1.5×ATR) is risk control, separate from win label.
-- If you insist on ≤60d **and** 1/day, expect ~68% forward WR — not 80%.
+## If you still want +20%
+You must allow a longer hold (~180d daily top-1 previously cleared ~89% WR) — incompatible with a 1–2 month max.

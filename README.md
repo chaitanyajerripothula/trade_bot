@@ -70,18 +70,21 @@ Shorter holds (≤30d) did not clear a robust 80%. Details: `scanners/artifacts/
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_tenpct_80wr_scanner.py
 ```
 
-## TwentyPct80 scanner (`run_twenty_pct_80wr_scanner.py`)
+## TwentyPct80 / ShortHold80 (`run_twenty_pct_80wr_scanner.py`)
 
-**≥1 stock per day** + **≥+20%** + validated **≥80% tip WR**:
+**Max hold 1–2 months.** Under that cap, **+20% @ ≥80% tip WR is not attainable** with ≥1 tip/day (best ~58–68%).
+
+Shipped instead — best rule that clears 80% inside ~1.5 months:
 
 | | Backtest | Forward |
 |---|---|---|
-| Tip WR | **99.3%** | **88.7%** (n=115, Wilson~82%) |
-| Frequency | **1.0 tip/day** | **1.0 tip/day** |
-| Hold | **180 trading days** | same |
-| Rule | **Daily top-1** by calibrated `P(+20%)` | walk-forward |
+| Target | **+10% MFE** | same |
+| Hold | **30 trading days** | same |
+| Tip WR | **~96.7%** | **~88.7%** (Wilson~85%) |
+| Frequency | ~1.1 tips/day avg | **~1.4 tips/day avg** |
+| Rule | Calibrated GBM `P≥0.82` (max 3) | walk-forward |
 
-A hard threshold at hold=60 that fires ≥1/day only reaches ~68% forward WR. Daily top-1 at 180d keeps both constraints. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
+Tips cluster (~17% of days fire); quiet days are normal. Forcing one tip every calendar day drops forward WR to ~57–61%. Report: `scanners/artifacts/scanner20pct_80wr_report.md`.
 
 ```bash
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_twenty_pct_80wr_scanner.py
