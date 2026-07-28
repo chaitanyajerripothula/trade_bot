@@ -1,13 +1,14 @@
 import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import requests
+from email.mime.text import MIMEText
+
 import pandas as pd
-import yfinance as yf
+
+from fo_adv import compute_20day_adv, fetch_preopen_payload, make_session
 
 # ==========================================
-# 🔐 SECURE CONFIGURATION VIA ENV VARIABLES
+# Secure configuration via env variables
 # ==========================================
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
@@ -15,21 +16,12 @@ SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
 SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD")
 RECEIVER_EMAIL = os.environ.get("RECEIVER_EMAIL")
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9"
-}
 
-def send_alert_email(dataframe_html):
-    if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
-        raise SystemExit(
-            "Missing SENDER_EMAIL, SENDER_PASSWORD, or RECEIVER_EMAIL environment variables."
-        )
-
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = "🔥 SYSTEM OVERRIDE: HIGH CONVICTION PRE-OPEN TARGETS"
-    msg['From'] = SENDER_EMAIL
-    msg['To'] = RECEIVER_EMAIL
+def send_alert_email(dataframe_html: str) -> None:
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "SYSTEM OVERRIDE: HIGH CONVICTION PRE-OPEN TARGETS"
+    msg["From"] = SENDER_EMAIL
+    msg["To"] = RECEIVER_EMAIL
 
     html_content = f"""
     <html>
@@ -48,95 +40,82 @@ def send_alert_email(dataframe_html):
       </body>
     </html>
     """
-    msg.attach(MIMEText(html_content, 'html'))
+    msg.attach(MIMEText(html_content, "html"))
     with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
     print("📨 Transactional Mail dispatched successfully.")
 
-if __name__ == "__main__":
-    session = requests.Session()
-    session.headers.update(headers)
 
-    # 1. Pull Live Active F&O Tickers from Exchange Match Engine
-    raw_rows = None
-    last_err = None
-    for attempt in range(1, 4):
-        try:
-            session.get("https://www.nseindia.com/", timeout=15)
-            response = session.get(
-                "https://www.nseindia.com/api/market-data-pre-open?key=FO",
-                timeout=15,
-            )
-            if response.status_code != 200:
-                raise ConnectionError(f"NSE API rejected connection with code: {response.status_code}")
-            raw_rows = response.json().get("data", [])
-            if not raw_rows:
-                raise ConnectionError("NSE pre-open returned empty data")
-            break
-        except Exception as e:
-            last_err = e
-            print(f"⚠️ NSE pre-open attempt {attempt}/3 failed: {e}")
-            import time
-            time.sleep(2 * attempt)
-
-    if raw_rows is None:
-        raise SystemExit(f"🚨 Failed to establish exchange connection handshake: {last_err}")
-
-    # 2. Structural Guardrail: Validate or Dynamic-Build the ADV Database
+def load_or_build_adv_lookup(raw_rows) -> dict:
     if os.path.exists("fno_adv.csv"):
-        print("📁 Found existing 'fno_adv.csv' file. Loading dictionary index...")
+        print("📁 Found existing 'fno_adv.csv'. Loading lookup...")
         adv_database = pd.read_csv("fno_adv.csv")
-        adv_lookup = dict(zip(adv_database['Symbol'].str.strip(), adv_database['20Day_ADV']))
-    else:
-        print("⚠️ 'fno_adv.csv' is missing from root workspace! Launching dynamic calculation engine...")
-        symbols = [row.get('metadata', {}).get('symbol','').strip() for row in raw_rows if row.get('metadata', {}).get('symbol')]
-        yf_tickers = [f"{sym}.NS" for sym in symbols if sym]
-        
-        # Pull daily historical bars to build the missing database frame instantly
-        historical_data = yf.download(tickers=yf_tickers, period="40d", interval="1d", group_by="ticker", progress=False)
-        
-        adv_lookup = {}
-        for sym in symbols:
-            ticker_suffix = f"{sym}.NS"
-            try:
-                if ticker_suffix in historical_data.columns.levels[0]:
-                    vols = historical_data[ticker_suffix]['Volume'].dropna().tail(20)
-                    if len(vols) >= 15:
-                        adv_lookup[sym] = int(vols.mean())
-            except:
-                continue
-                
-        # Save a local cache backup file to assist consecutive workflow blocks
-        pd.DataFrame(list(adv_lookup.items()), columns=['Symbol', '20Day_ADV']).to_csv("fno_adv.csv", index=False)
-        print("✅ Fresh 'fno_adv.csv' dynamically built and stored in workspace memory.")
+        symbols = adv_database["Symbol"].astype(str).str.strip().str.upper()
+        return dict(zip(symbols, adv_database["20Day_ADV"]))
 
-    # 3. Compute Pure Institutional Footprint Ratios
-    processed_list = []
+    print("⚠️ 'fno_adv.csv' missing — building ADV from pre-open symbols (slow path)...")
+    symbols = [
+        str(row.get("metadata", {}).get("symbol", "")).strip().upper()
+        for row in raw_rows
+        if row.get("metadata", {}).get("symbol")
+    ]
+    symbols = sorted({s for s in symbols if s})
+    adv_df = compute_20day_adv(symbols, period="1mo")
+    adv_df.to_csv("fno_adv.csv", index=False)
+    print("✅ Fresh 'fno_adv.csv' built for this run.")
+    return dict(zip(adv_df["Symbol"].astype(str).str.upper(), adv_df["20Day_ADV"]))
+
+
+if __name__ == "__main__":
+    # Fail fast before any network work — secrets empty previously wasted ~15s+.
+    if not all([SENDER_EMAIL, SENDER_PASSWORD, RECEIVER_EMAIL]):
+        raise SystemExit(
+            "Missing SENDER_EMAIL, SENDER_PASSWORD, or RECEIVER_EMAIL environment variables."
+        )
+
+    session = make_session()
+    raw_rows = fetch_preopen_payload(session)
+    adv_lookup = load_or_build_adv_lookup(raw_rows)
+
+    records = []
     for row in raw_rows:
-        metadata = row.get('metadata', {})
-        detail = row.get('detail', {}).get('preOpenMarket', {})
-        symbol = metadata.get('symbol', '').strip()
-        
-        # Default to an extreme volume roof if a ticker escapes mapping parameters
-        historical_adv = adv_lookup.get(symbol, 999999999)
-        
-        processed_list.append({
-            'Symbol': symbol,
-            'IEP_Open': pd.to_numeric(metadata.get('iep', 0)),
-            'Pct_Chg': pd.to_numeric(metadata.get('pChange', 0)),
-            'Matched_Vol': pd.to_numeric(detail.get('totalTradedVolume', 0)),
-            '20Day_ADV': historical_adv
-        })
-        
-    df = pd.DataFrame(processed_list)
-    df['Footprint_Pct'] = (df['Matched_Vol'] / df['20Day_ADV']) * 100
-    high_conviction = df[df['Footprint_Pct'] >= 5.0].sort_values(by='Footprint_Pct', ascending=False)
-    
-    # 4. Filter and Transmit Reports
+        metadata = row.get("metadata", {})
+        detail = row.get("detail", {}).get("preOpenMarket", {})
+        symbol = str(metadata.get("symbol", "")).strip().upper()
+        if not symbol:
+            continue
+        records.append(
+            {
+                "Symbol": symbol,
+                "IEP_Open": metadata.get("iep", 0),
+                "Pct_Chg": metadata.get("pChange", 0),
+                "Matched_Vol": detail.get("totalTradedVolume", 0),
+                "20Day_ADV": adv_lookup.get(symbol, 999_999_999),
+            }
+        )
+
+    df = pd.DataFrame.from_records(records)
+    if df.empty:
+        raise SystemExit("No pre-open rows to evaluate.")
+
+    for col in ("IEP_Open", "Pct_Chg", "Matched_Vol", "20Day_ADV"):
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    df["Footprint_Pct"] = (df["Matched_Vol"] / df["20Day_ADV"].replace(0, pd.NA)) * 100
+    high_conviction = (
+        df[df["Footprint_Pct"] >= 5.0]
+        .sort_values(by="Footprint_Pct", ascending=False)
+        .copy()
+    )
+
     if not high_conviction.empty:
-        high_conviction['Footprint_Pct'] = high_conviction['Footprint_Pct'].round(2)
-        send_alert_email(high_conviction[['Symbol', 'IEP_Open', 'Pct_Chg', 'Matched_Vol', 'Footprint_Pct']].to_html(index=False))
+        high_conviction["Footprint_Pct"] = high_conviction["Footprint_Pct"].round(2)
+        send_alert_email(
+            high_conviction[
+                ["Symbol", "IEP_Open", "Pct_Chg", "Matched_Vol", "Footprint_Pct"]
+            ].to_html(index=False)
+        )
     else:
         print("No structural crossovers exceeded the 5% threshold today. Suppressing email transmission.")
