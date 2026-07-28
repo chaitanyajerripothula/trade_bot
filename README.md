@@ -6,18 +6,20 @@ NSE F&O pre-open multi-scanner suite. Evening ADV harvest; morning runs independ
 
 | File | Signal |
 |---|---|
-| `scanners/footprint_scanner.py` | Matched pre-open vol ≥ **5%** of 20-day ADV |
-| `scanners/gap_scanner.py` | \|IEP % chg\| ≥ **1.5%** |
-| `scanners/imbalance_scanner.py` | \|Buy−Sell\| / (Buy+Sell) ≥ **40%** (book ≥ 5k) |
-| `scanners/volume_shock_scanner.py` | Footprint ≥ **2%** ADV and matched vol ≥ **50k** |
-| `scanners/near_52w_scanner.py` | IEP within **3%** of 52W high or low |
+| `scanners/footprint_scanner.py` | Matched pre-open vol ≥ **5%** of 20-day ADV → Bias |
+| `scanners/gap_scanner.py` | \|IEP % chg\| ≥ **2%** → Bias |
+| `scanners/imbalance_scanner.py` | \|Buy−Sell\| / (Buy+Sell) ≥ **55%** (book ≥ 20k) → Bias |
+| `scanners/volume_shock_scanner.py` | Footprint ≥ **2%** ADV and matched vol ≥ **50k** → Bias |
+| `scanners/near_52w_scanner.py` | IEP within **3%** of 52W high/low, aligned with % chg → Bias |
 
-Run one scanner:
+Morning run clubs all scanner hits into **one high-conviction email** (symbols with ≥2 scanners agreeing on BUY/SELL, or strong footprint alone).
+
+Run one scanner (prints table, no mail):
 ```bash
 python -m scanners.gap_scanner
 ```
 
-Run all (shared NSE fetch once):
+Run all → single combined mail:
 ```bash
 python run_morning_scanners.py
 ```

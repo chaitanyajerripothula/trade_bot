@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from scanners._common import build_preopen_frame, emit_hits
+from scanners._common import build_preopen_frame, price_bias
 
-SCANNER_NAME = "Volume Shock Scanner"
-SUBJECT = "SCANNER: Pre-Open Volume Shock Matched_Vol >= 2% ADV and >= 50k"
+SCANNER_NAME = "VolumeShock"
 FOOTPRINT_PCT_MIN = 2.0
 MIN_MATCHED_VOL = 50_000
-COLUMNS = ["Symbol", "IEP_Open", "Pct_Chg", "Matched_Vol", "20Day_ADV", "Footprint_Pct"]
+COLUMNS = ["Symbol", "Bias", "IEP_Open", "Pct_Chg", "Matched_Vol", "20Day_ADV", "Footprint_Pct"]
 
 
 def scan(
@@ -21,15 +20,17 @@ def scan(
 ) -> pd.DataFrame:
     hits = df[
         (df["Footprint_Pct"] >= min_footprint_pct) & (df["Matched_Vol"] >= min_matched_vol)
-    ].sort_values(by="Matched_Vol", ascending=False)
-    return hits
+    ].copy()
+    hits["Bias"] = hits["Pct_Chg"].map(price_bias)
+    hits = hits[hits["Bias"].isin(["BUY", "SELL"])]
+    return hits.sort_values(by="Matched_Vol", ascending=False)
 
 
 def run(df: pd.DataFrame | None = None) -> pd.DataFrame:
     frame = df if df is not None else build_preopen_frame()
-    hits = scan(frame)
-    return emit_hits(SCANNER_NAME, SUBJECT, hits, COLUMNS)
+    return scan(frame)
 
 
 if __name__ == "__main__":
-    run()
+    hits = run()
+    print(hits[COLUMNS].head(20).to_string(index=False) if not hits.empty else "no hits")

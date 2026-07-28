@@ -1,9 +1,14 @@
-"""Morning orchestrator: fetch pre-open once, run each independent scanner."""
+"""Morning orchestrator: one NSE fetch, all scanners, one high-conviction email."""
 
 from __future__ import annotations
 
 from scanners import SCANNERS
-from scanners._common import build_preopen_frame, require_email_secrets
+from scanners._common import (
+    build_preopen_frame,
+    club_high_conviction,
+    require_email_secrets,
+    send_combined_email,
+)
 
 
 def main() -> None:
@@ -12,16 +17,21 @@ def main() -> None:
     frame = build_preopen_frame()
     print(f"✅ Frame ready: {len(frame)} symbols — running {len(SCANNERS)} scanners")
 
-    for run_scanner in SCANNERS:
-        name = getattr(run_scanner, "__module__", "scanner")
-        print(f"\n--- {name} ---")
+    scanner_hits = {}
+    for name, scan_fn in SCANNERS:
         try:
-            run_scanner(frame)
-        except SystemExit as err:
-            # Keep other scanners alive if one fails hard on email/etc.
-            print(f"🚨 {name} aborted: {err}")
+            hits = scan_fn(frame)
+            scanner_hits[name] = hits
+            print(f"[{name}] {0 if hits is None else len(hits)} raw hits")
         except Exception as err:
             print(f"🚨 {name} failed: {err}")
+            scanner_hits[name] = None
+
+    combined = club_high_conviction(scanner_hits)
+    print(f"🎯 High-conviction clubbed symbols: {len(combined)}")
+    if not combined.empty:
+        print(combined.head(10).to_string(index=False))
+    send_combined_email(combined)
 
 
 if __name__ == "__main__":

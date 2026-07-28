@@ -4,26 +4,25 @@ from __future__ import annotations
 
 import pandas as pd
 
-from scanners._common import build_preopen_frame, emit_hits
+from scanners._common import build_preopen_frame
 
-SCANNER_NAME = "Gap Scanner"
-SUBJECT = "SCANNER: Pre-Open Gap |Pct_Chg| >= 1.5%"
-GAP_PCT_MIN = 1.5
-COLUMNS = ["Symbol", "IEP_Open", "Prev_Close", "Gap_Pct", "Matched_Vol", "Footprint_Pct"]
+SCANNER_NAME = "Gap"
+# High-conviction gap floor (was 1.5% for noisy alerts).
+GAP_PCT_MIN = 2.0
+COLUMNS = ["Symbol", "Bias", "IEP_Open", "Prev_Close", "Gap_Pct", "Matched_Vol", "Footprint_Pct"]
 
 
 def scan(df: pd.DataFrame, *, min_abs_gap_pct: float = GAP_PCT_MIN) -> pd.DataFrame:
     hits = df[df["Gap_Pct"].abs() >= min_abs_gap_pct].copy()
-    hits["Gap_Direction"] = hits["Gap_Pct"].apply(lambda x: "UP" if x >= 0 else "DOWN")
+    hits["Bias"] = hits["Gap_Pct"].apply(lambda x: "BUY" if x > 0 else "SELL")
     return hits.sort_values(by="Gap_Pct", key=lambda s: s.abs(), ascending=False)
 
 
 def run(df: pd.DataFrame | None = None) -> pd.DataFrame:
     frame = df if df is not None else build_preopen_frame()
-    hits = scan(frame)
-    cols = COLUMNS + ["Gap_Direction"]
-    return emit_hits(SCANNER_NAME, SUBJECT, hits, cols)
+    return scan(frame)
 
 
 if __name__ == "__main__":
-    run()
+    hits = run()
+    print(hits[COLUMNS].head(20).to_string(index=False) if not hits.empty else "no hits")
