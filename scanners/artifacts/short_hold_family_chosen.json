@@ -1,0 +1,47 @@
+[
+  {
+    "name": "ShortHold8",
+    "stem": "short_hold_8",
+    "side": "CALL",
+    "target": 0.08,
+    "hold": 42,
+    "thr": 0.92,
+    "fwd_wr": 0.9714,
+    "back_wr": 0.9939,
+    "wilson": 0.9466,
+    "fwd_tpd": 1.2451,
+    "approx_tips_month": 26.1,
+    "fwd_n": 315,
+    "model_key": "CALL_8_42"
+  },
+  {
+    "name": "ShortHold12",
+    "stem": "short_hold_12",
+    "side": "CALL",
+    "target": 0.12,
+    "hold": 45,
+    "thr": 0.88,
+    "fwd_wr": 0.9371,
+    "back_wr": 0.9865,
+    "wilson": 0.8847,
+    "fwd_tpd": 0.572,
+    "approx_tips_month": 12.0,
+    "fwd_n": 143,
+    "model_key": "CALL_12_45"
+  },
+  {
+    "name": "ShortHold15",
+    "stem": "short_hold_15",
+    "side": "CALL",
+    "target": 0.15,
+    "hold": 60,
+    "thr": 0.85,
+    "fwd_wr": 0.9155,
+    "back_wr": 0.9927,
+    "wilson": 0.8581,
+    "fwd_tpd": 0.6043,
+    "approx_tips_month": 12.7,
+    "fwd_n": 142,
+    "model_key": "CALL_15_60"
+  }
+]

@@ -2,3 +2,6 @@
 __pycache__/
 *.py[cod]
 scanners/__pycache__/
+research/__pycache__/
+# Large research dump of all family model variants (per-scanner models are committed)
+scanners/artifacts/short_hold_family_models.joblib

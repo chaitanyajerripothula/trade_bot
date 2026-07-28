@@ -3,7 +3,7 @@
 NSE F&O scanner suite:
 - **Morning** — pre-open high-conviction bias (one mail)
 - **Evening** — 20-day ADV harvest
-- **Positional** — **ShortHold80** only (+10% / ≤30 trading days, ≥80% tip WR)
+- **Positional** — ShortHold family (≥80% tip WR, 1–2 month holds)
 
 ## Pre-open scanners (`run_morning_scanners.py`)
 
@@ -22,9 +22,28 @@ python -m scanners.gap_scanner          # one scanner (print only)
 python run_morning_scanners.py          # all → one mail
 ```
 
-## ShortHold80 (`run_short_hold_80_scanner.py`)
+## ShortHold family (positional)
 
-Only positional scanner. Max hold **1–2 months**:
+Validated CALL scanners with ShortHold80-like metrics (hold ≤60d, tip WR ≥80%).  
+PUT-side counterparts did **not** clear 80% under this hold cap.
+
+| Scanner | Target | Hold | Fwd WR | ≈ tips/month | Runner |
+|---|---:|---:|---:|---:|---|
+| **ShortHold80** | +10% | 30d | ~88.7% | 24–30 | `run_short_hold_80_scanner.py` |
+| **ShortHold8** | +8% | 42d | ~97.1% | ~26 | `run_short_hold_8_scanner.py` |
+| **ShortHold12** | +12% | 45d | ~93.7% | ~12 | `run_short_hold_12_scanner.py` |
+| **ShortHold15** | +15% | 60d | ~91.5% | ~13 | `run_short_hold_15_scanner.py` |
+
+```bash
+python run_short_hold_80_scanner.py --dry-run
+python run_short_hold_8_scanner.py --dry-run
+python run_short_hold_12_scanner.py --dry-run
+python run_short_hold_15_scanner.py --dry-run
+```
+
+Report: `scanners/artifacts/short_hold_family_report.md`
+
+### ShortHold80 detail
 
 | | Backtest | Forward |
 |---|---|---|
@@ -36,19 +55,14 @@ Only positional scanner. Max hold **1–2 months**:
 
 Tips cluster (~17% of days fire). Quiet days are normal.
 
-Each run prints/emails the **last 10 signals** with Bias, Entry, Exit (+10% target), and Reason  
-(`scanners/artifacts/short_hold_80_signal_history.json`).
+Each ShortHold run prints/emails the **last 10 signals** with Bias, Entry, Exit (target), and Reason.
 
 ```bash
 # production (emails)
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_80_scanner.py
-
-# local check
-python run_short_hold_80_scanner.py --dry-run
 ```
 
 Policy: `scanners/artifacts/short_hold_80_policy.json`  
-Report: `scanners/artifacts/short_hold_80_report.md`  
 Model: `scanners/artifacts/scanner_short_hold_80_model.joblib`
 
 ## On-time setup (free)
@@ -58,7 +72,7 @@ Use [cron-job.org](https://cron-job.org) → `workflow_dispatch` (GitHub cron is
 | Job | UTC cron | IST | Body |
 |---|---|---|---|
 | Morning | `37 3 * * 1-5` | 09:07 | `{"ref":"main","inputs":{"phase":"morning"}}` |
-| Positional (ShortHold80) | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
+| Positional (ShortHold family) | `15 10 * * 1-5` | 15:45 | `{"ref":"main","inputs":{"phase":"positional"}}` |
 | Evening | `0 11 * * 1-5` | 16:30 | `{"ref":"main","inputs":{"phase":"evening"}}` |
 
 POST `https://api.github.com/repos/chaitanyajerripothula/trade_bot/actions/workflows/main.yml/dispatches`  
@@ -73,4 +87,7 @@ pip install -r requirements.txt
 python generate_adv.py
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_morning_scanners.py
 SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_80_scanner.py
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_8_scanner.py
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_12_scanner.py
+SENDER_EMAIL=... SENDER_PASSWORD=... RECEIVER_EMAIL=... python run_short_hold_15_scanner.py
 ```

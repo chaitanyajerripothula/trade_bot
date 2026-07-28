@@ -1,0 +1,20 @@
+{
+  "scanner": "ShortHold8",
+  "status": "live",
+  "side": "CALL",
+  "win_definition": "underlying MFE \u2265 +8% within 42 sessions",
+  "hold_trading_days": 42,
+  "threshold": 0.92,
+  "max_tips_per_day": 3,
+  "validation": {
+    "backtest_wr": 0.9939,
+    "forward_wr": 0.9714,
+    "wilson_forward": 0.9466,
+    "forward_n": 315,
+    "avg_tips_per_day_forward": 1.2451,
+    "approx_tips_per_month": 26.1,
+    "day_coverage_forward": 0.1423
+  },
+  "runner": "run_short_hold_8_scanner.py",
+  "model": "scanners/artifacts/short_hold_8_model.joblib"
+}
