@@ -1,0 +1,112 @@
+[
+  {
+    "Date":"2026-06-04",
+    "Symbol":"ASHOKLEY",
+    "Bias":"CALL",
+    "Entry":144.44,
+    "Exit":158.88,
+    "StopLoss":136.49,
+    "Conviction":0.8371,
+    "Reason":"Calibrated P(+10% in \u226430d)=83.7% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-06-04",
+    "Symbol":"INOXWIND",
+    "Bias":"CALL",
+    "Entry":85.78,
+    "Exit":94.36,
+    "StopLoss":80.13,
+    "Conviction":0.8252,
+    "Reason":"Calibrated P(+10% in \u226430d)=82.5% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-06-01",
+    "Symbol":"TRENT",
+    "Bias":"CALL",
+    "Entry":2771.53,
+    "Exit":3048.69,
+    "StopLoss":2673.59,
+    "Conviction":0.8559,
+    "Reason":"Calibrated P(+10% in \u226430d)=85.6% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-29",
+    "Symbol":"KAYNES",
+    "Bias":"CALL",
+    "Entry":3133.6,
+    "Exit":3446.96,
+    "StopLoss":2823.04,
+    "Conviction":0.8398,
+    "Reason":"Calibrated P(+10% in \u226430d)=84.0% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-29",
+    "Symbol":"PGEL",
+    "Bias":"CALL",
+    "Entry":482.55,
+    "Exit":530.8,
+    "StopLoss":455.94,
+    "Conviction":0.8235,
+    "Reason":"Calibrated P(+10% in \u226430d)=82.3% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-27",
+    "Symbol":"INOXWIND",
+    "Bias":"CALL",
+    "Entry":95.81,
+    "Exit":105.39,
+    "StopLoss":90.34,
+    "Conviction":0.8316,
+    "Reason":"Calibrated P(+10% in \u226430d)=83.2% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-26",
+    "Symbol":"INOXWIND",
+    "Bias":"CALL",
+    "Entry":96.22,
+    "Exit":105.84,
+    "StopLoss":90.84,
+    "Conviction":0.8281,
+    "Reason":"Calibrated P(+10% in \u226430d)=82.8% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-22",
+    "Symbol":"PGEL",
+    "Bias":"CALL",
+    "Entry":467.0,
+    "Exit":513.7,
+    "StopLoss":439.67,
+    "Conviction":0.8206,
+    "Reason":"Calibrated P(+10% in \u226430d)=82.1% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-21",
+    "Symbol":"INOXWIND",
+    "Bias":"CALL",
+    "Entry":95.0,
+    "Exit":104.5,
+    "StopLoss":89.21,
+    "Conviction":0.8498,
+    "Reason":"Calibrated P(+10% in \u226430d)=85.0% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-21",
+    "Symbol":"COCHINSHIP",
+    "Bias":"CALL",
+    "Entry":1531.0,
+    "Exit":1684.1,
+    "StopLoss":1429.85,
+    "Conviction":0.848,
+    "Reason":"Calibrated P(+10% in \u226430d)=84.8% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  },
+  {
+    "Date":"2026-05-21",
+    "Symbol":"KAYNES",
+    "Bias":"CALL",
+    "Entry":3174.9,
+    "Exit":3492.39,
+    "StopLoss":2844.69,
+    "Conviction":0.8391,
+    "Reason":"Calibrated P(+10% in \u226430d)=83.9% \u2265 82%. Forward WR=88.7% (Wilson=85.1%)."
+  }
+]
