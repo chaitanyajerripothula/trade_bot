@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>System Design 2h Drill — Launch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --line: #2a303b;
+      --text: #f2f4f8;
+      --muted: #9aa3b2;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --font: "Outfit", sans-serif;
+      --mono: "JetBrains Mono", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background:
+        radial-gradient(900px 500px at 0% 0%, #1a2740 0%, transparent 55%),
+        radial-gradient(700px 400px at 100% 0%, #2a1f14 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .eyebrow {
+      color: var(--blue);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+    .sub { color: var(--muted); margin-bottom: 20px; max-width: 60ch; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .tab.active { background: var(--blue); border-color: var(--blue); color: white; }
+    .panel {
+      background: rgba(23, 26, 33, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      animation: rise 0.35s ease both;
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .danger {
+      border-left: 4px solid var(--red);
+      background: #2a1518;
+    }
+    .warn { border-left: 4px solid var(--orange); background: #2a2114; }
+    .info { border-left: 4px solid var(--blue); background: #142033; }
+    .ok { border-left: 4px solid var(--green); background: #14241a; }
+    h2 { font-size: 1.25rem; margin-bottom: 10px; }
+    h3 { font-size: 1.05rem; margin-bottom: 8px; }
+    p, li { color: var(--muted); line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.95rem;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    td:first-child { color: var(--text); font-weight: 600; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn.primary { background: var(--blue); color: white; }
+    .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .stack-node {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      margin-bottom: 8px;
+      background: #12151b;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .stack-node.on {
+      border-color: var(--blue);
+      background: #182338;
+      color: #93c5fd;
+      transform: translateX(4px);
+    }
+    .on-pill {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      background: var(--blue);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat {
+      background: #12151b;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat b { display: block; font-size: 1.6rem; }
+    .stat span { color: var(--muted); font-size: 0.85rem; }
+    .budget {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      background: #0c0e12;
+      margin: 8px 0 16px;
+    }
+    .budget i { display: block; height: 100%; }
+    .drill-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      background: #12151b;
+    }
+    .drill-item.done { border-color: var(--green); }
+    .hidden { display: none; }
+    code {
+      font-family: var(--mono);
+      background: #0c0e12;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #93c5fd;
+      font-size: 0.85rem;
+    }
+    @media (max-width: 800px) {
+      .grid2, .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">Training mentor · 2 hours · Invert first</p>
+    <h1>System Design forever memory</h1>
+    <p class="sub">One loop solves any question. Design how it dies before how it works.</p>
+
+    <div class="panel danger">
+      <h3>Inversion rule</h3>
+      <p>Before you design how it works, design how it dies. Interviewers hire bottleneck hunters, not buzzword reciters.</p>
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-mode="invert">1. Fail first</button>
+      <button class="tab" data-mode="loop">2. Solve loop</button>
+      <button class="tab" data-mode="decide">3. Decision map</button>
+      <button class="tab" data-mode="drill">4. 2h drill</button>
+    </div>
+
+    <section id="invert" class="mode">
+      <div class="panel">
+        <h2>Fail first, then build</h2>
+        <p>Memorize kill moves. Tools attach themselves.</p>
+        <table>
+          <thead><tr><th>What kills you</th><th>Recovery move</th></tr></thead>
+          <tbody id="fail-body"></tbody>
+        </table>
+        <div class="panel info" style="margin-top:14px;margin-bottom:0">
+          <h3>Tattoo this</h3>
+          <p><b style="color:#fff">users → path → store → speed → scale → survival</b></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="loop" class="mode hidden">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:12px">
+          <h2 style="margin:0">Animated solve loop</h2>
+          <div class="row">
+            <span id="step-label" style="color:var(--muted);font-family:var(--mono);font-size:0.85rem"></span>
+            <button class="btn ghost" id="prev">Prev</button>
+            <button class="btn primary" id="next">Next</button>
+          </div>
+        </div>
+        <div class="row" id="step-pills" style="margin-bottom:14px"></div>
+        <div class="grid2">
+          <div>
+            <h3 id="loop-title"></h3>
+            <div class="panel warn" id="loop-invert"></div>
+            <div class="panel info" id="loop-say"></div>
+            <p id="loop-ask" style="margin-top:10px"></p>
+          </div>
+          <div id="stack"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="decide" class="mode hidden">
+      <div class="panel">
+        <h2>Decision map + cheat codes</h2>
+        <p>Force first. Tool second.</p>
+        <div class="grid2" style="margin-top:12px">
+          <div>
+            <h3>Force → store / path</h3>
+            <table><thead><tr><th>If you need</th><th>Reach for</th></tr></thead><tbody id="dec-body"></tbody></table>
+          </div>
+          <div>
+            <h3>Cheat codes</h3>
+            <table><thead><tr><th>Signal</th><th>Default</th></tr></thead><tbody id="cheat-body"></tbody></table>
+            <h3 style="margin-top:16px">Company differentiators</h3>
+            <table><thead><tr><th>Prompt</th><th>Unique piece</th></tr></thead><tbody id="uniq-body"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="drill" class="mode hidden">
+      <div class="panel">
+        <h2>2-hour drill board</h2>
+        <div class="stats">
+          <div class="stat"><b>120</b><span>minutes</span></div>
+          <div class="stat"><b id="done-count">0/6</b><span>blocks done</span></div>
+          <div class="stat"><b>1</b><span>universal pattern</span></div>
+        </div>
+        <div class="budget" aria-hidden="true">
+          <i style="width:16.6%;background:var(--orange)"></i>
+          <i style="width:16.6%;background:var(--red)"></i>
+          <i style="width:25%;background:var(--blue)"></i>
+          <i style="width:16.6%;background:#a855f7"></i>
+          <i style="width:16.6%;background:var(--green)"></i>
+          <i style="width:8.6%;background:#eab308"></i>
+        </div>
+        <div id="drill-list"></div>
+        <div class="panel ok" style="margin-top:14px;margin-bottom:0">
+          <h3 id="prompt-title">Design Twitter</h3>
+          <p>Anchor: <b id="prompt-anchor" style="color:#fff">Timeline fan-out</b></p>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" id="next-prompt">Next company</button>
+            <button class="btn ghost" id="reset-prompt">Reset</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const FAIL = [
+      ["Cannot clarify requirements", "Ask who / scale / latency / consistency before drawing"],
+      ["Jump to Kafka / microservices", "Start with 1 box. Add a box only when a force appears"],
+      ["Ignore read vs write shape", "State the traffic ratio; it picks cache, queue, DB"],
+      ["No single source of truth", "Name the primary store before satellites"],
+      ["Cache with no invalidation", "Say hit path, miss path, and how stale dies"],
+      ["Scale talk with no bottleneck", "Point at the first thing that breaks under 10x"],
+      ["Happy path only", "Add 1 failure: replica lag, queue backlog, region down"],
+      ["No numbers", "Back-of-envelope: QPS, storage, bandwidth even if rough"],
+    ];
+    const LOOP = [
+      { title: "Who are the users?", invert: "If you cannot name the user and the one job they hire the system for, you are designing fiction.", say: "Actors, primary actions, read vs write, scale of users.", ask: "Who uses it? Read or write heavy? Expected DAU / peak QPS?", lit: [0] },
+      { title: "How does the request travel?", invert: "If you cannot draw Client → Edge → API → Data on one whiteboard, stop adding features.", say: "Client → CDN/LB → API → cache → DB → storage / queue.", ask: "Sync or async? Where does latency die? Critical path?", lit: [0,1,2] },
+      { title: "Where is the data stored?", invert: "Wrong storage choice creates more outages than missing microservices.", say: "Pick one source of truth first. Specialize only when forced.", ask: "Need relations? Search? Files / time-series / graph?", lit: [4,5] },
+      { title: "How do we make it fast?", invert: "Caching without a hit/miss story is theater.", say: "Cache hot reads. CDN static. Precompute expensive feeds.", ask: "What is hot? TTL / invalidation? Hit vs miss?", lit: [1,3] },
+      { title: "How do we make it scale?", invert: "Vertical scaling is a pause button, not a strategy.", say: "Horizontal → LB → autoscaling → shard → CDN → async.", ask: "Bottleneck first? Stateful? Where to shard?", lit: [1,2,6] },
+      { title: "How do we make it reliable?", invert: "A design with no failure mode is incomplete, not elegant.", say: "Replication, failover, retries, idempotency, monitoring, rate limits.", ask: "What fails first? SPOF? How recover?", lit: [2,4,6] },
+    ];
+    const STACK = ["Client","LB / CDN","API servers","Cache","Database","Object store","Queue / Kafka"];
+    const DECISIONS = [
+      ["Need relationships / transactions","SQL"],["Flexible docs / huge scale keys","NoSQL"],
+      ["Full-text / fuzzy search","Elasticsearch"],["Analytics / aggregates","Data warehouse"],
+      ["Connections / social graph","Graph DB"],["Metrics over time","Time-series DB"],
+      ["Hot repeated reads","Redis cache"],["Burst writes / fan-out / async","Kafka / queue"],
+      ["Large files / media","Object storage (S3)"],["Global static / video","CDN"],
+      ["Realtime chat / presence","WebSockets"],["Auth between services","JWT / OAuth"],
+    ];
+    const CHEATS = [["Authentication","JWT"],["Realtime","WebSockets"],["Notifications","Queue"],["Large files","Object storage"],["Search","Elasticsearch"],["High reads","Redis"],["High writes","Kafka"],["Analytics","Warehouse"]];
+    const UNIQUES = [["Twitter","Timeline fan-out"],["Instagram","Feed + media CDN"],["WhatsApp","WebSockets + delivery receipts"],["Uber","Live location + matching"],["YouTube","Video processing pipeline"],["Dropbox","File sync + chunking"],["TinyURL","Hash + redirect"],["Netflix","CDN streaming"],["Spotify","Playlists + recommendations"],["Google Drive","Chunked upload + metadata DB"]];
+    const DRILLS = [
+      "0–20 min: Memorize the 6-question loop backward",
+      "20–40 min: Fail-first table out loud",
+      "40–70 min: Draw default stack 5 times",
+      "70–90 min: Decision map without looking",
+      "90–110 min: Name unique component for 5 prompts",
+      "110–120 min: One full mock interview",
+    ];
+
+    let step = 0, promptIdx = 0, done = Array(6).fill(false);
+
+    function rows(el, data, codeSecond) {
+      el.innerHTML = data.map(([a,b]) => `<tr><td>${a}</td><td>${codeSecond ? `<code>${b}</code>` : b}</td></tr>`).join("");
+    }
+    rows(document.getElementById("fail-body"), FAIL, false);
+    rows(document.getElementById("dec-body"), DECISIONS, true);
+    rows(document.getElementById("cheat-body"), CHEATS, true);
+    rows(document.getElementById("uniq-body"), UNIQUES, false);
+
+    const pills = document.getElementById("step-pills");
+    pills.innerHTML = LOOP.map((_, i) => `<button class="tab" data-step="${i}">${i+1}</button>`).join("");
+
+    function renderLoop() {
+      const L = LOOP[step];
+      document.getElementById("step-label").textContent = `Step ${step+1} / 6`;
+      document.getElementById("loop-title").textContent = L.title;
+      document.getElementById("loop-invert").innerHTML = `<h3>Invert first</h3><p>${L.invert}</p>`;
+      document.getElementById("loop-say").innerHTML = `<h3>Say this</h3><p>${L.say}</p>`;
+      document.getElementById("loop-ask").innerHTML = `<b style="color:#fff">Force questions:</b> ${L.ask}`;
+      document.getElementById("stack").innerHTML = STACK.map((n,i) => {
+        const on = L.lit.includes(i);
+        return `<div class="stack-node ${on ? "on" : ""}"><span>${n}</span>${on ? '<span class="on-pill">ON</span>' : ""}</div>`;
+      }).join("");
+      [...pills.children].forEach((b,i) => b.classList.toggle("active", i === step));
+    }
+
+    function renderDrill() {
+      document.getElementById("done-count").textContent = `${done.filter(Boolean).length}/6`;
+      document.getElementById("drill-list").innerHTML = DRILLS.map((d,i) => `
+        <div class="drill-item ${done[i] ? "done" : ""}">
+          <span>${d}</span>
+          <button class="btn ${done[i] ? "ghost" : "primary"}" data-drill="${i}">${done[i] ? "Undo" : "Mark done"}</button>
+        </div>`).join("");
+      const u = UNIQUES[promptIdx % UNIQUES.length];
+      document.getElementById("prompt-title").textContent = `Design ${u[0]}`;
+      document.getElementById("prompt-anchor").textContent = u[1];
+    }
+
+    function setMode(mode) {
+      document.querySelectorAll(".mode").forEach(s => s.classList.add("hidden"));
+      document.getElementById(mode).classList.remove("hidden");
+      document.querySelectorAll("#tabs .tab").forEach(t => t.classList.toggle("active", t.dataset.mode === mode));
+      if (mode === "loop") renderLoop();
+      if (mode === "drill") renderDrill();
+    }
+
+    document.getElementById("tabs").onclick = (e) => {
+      const t = e.target.closest("[data-mode]");
+      if (t) setMode(t.dataset.mode);
+    };
+    document.getElementById("prev").onclick = () => { step = (step + 5) % 6; renderLoop(); };
+    document.getElementById("next").onclick = () => { step = (step + 1) % 6; renderLoop(); };
+    pills.onclick = (e) => {
+      const t = e.target.closest("[data-step]");
+      if (!t) return;
+      step = +t.dataset.step;
+      renderLoop();
+    };
+    document.getElementById("drill-list").onclick = (e) => {
+      const t = e.target.closest("[data-drill]");
+      if (!t) return;
+      const i = +t.dataset.drill;
+      done[i] = !done[i];
+      renderDrill();
+    };
+    document.getElementById("next-prompt").onclick = () => { promptIdx++; renderDrill(); };
+    document.getElementById("reset-prompt").onclick = () => { promptIdx = 0; renderDrill(); };
+
+    // auto-advance loop every 8s while on loop tab (animation)
+    setInterval(() => {
+      const loopVisible = !document.getElementById("loop").classList.contains("hidden");
+      if (loopVisible) { step = (step + 1) % 6; renderLoop(); }
+    }, 8000);
+
+    renderLoop();
+  </script>
+</body>
+</html>
