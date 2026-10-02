@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>System Design in 7 Steps — Field Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="poster" role="main">
+
+    <!-- TITLE -->
+    <header class="hero">
+      <p class="eyebrow">Memorize in 4 hours · Junior → Senior</p>
+      <h1>SYSTEM DESIGN<br /><span>IN 7 STEPS</span></h1>
+      <p class="tagline">What do I think about <em>FIRST</em> whenever I'm asked to design any system?</p>
+      <div class="hero-flow">
+        <span>Ask</span><i></i><span>Draw</span><i></i><span>Store</span><i></i><span>Cache</span><i></i><span>Scale</span><i></i><span>Blocks</span><i></i><span>Check</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT COLUMN: STEPS 1-7 -->
+      <div class="main-col">
+
+        <!-- STEP 1 -->
+        <section class="card step s1" style="--c:#007AFF">
+          <div class="step-head">
+            <span class="num">01</span>
+            <h2>Understand the Question <span class="ico">🎯</span></h2>
+          </div>
+          <div class="ask-grid">
+            <div class="ask">Who uses it?</div>
+            <div class="ask">Read or Write heavy?</div>
+            <div class="ask">Expected users?</div>
+            <div class="ask">Requests / sec?</div>
+            <div class="ask">Storage?</div>
+            <div class="ask">Latency needs?</div>
+          </div>
+          <div class="outputs">
+            <div class="out blue">→ Functional Requirements</div>
+            <div class="out green">→ Non-functional Requirements</div>
+          </div>
+        </section>
+
+        <!-- STEP 2 -->
+        <section class="card step s2" style="--c:#34C759">
+          <div class="step-head">
+            <span class="num">02</span>
+            <h2>High Level Diagram <span class="ico">🏗</span></h2>
+          </div>
+          <div class="pipeline">
+            <div class="pipe"><strong>User</strong><small>Sends the request</small></div>
+            <div class="arr">↓</div>
+            <div class="pipe"><strong>Load Balancer</strong><small>Spreads traffic evenly</small></div>
+            <div class="arr">↓</div>
+            <div class="pipe"><strong>API Servers</strong><small>Runs your business logic</small></div>
+            <div class="arr">↓</div>
+            <div class="pipe"><strong>Cache</strong><small>Serves hot data fast</small></div>
+            <div class="arr">↓</div>
+            <div class="pipe"><strong>Database</strong><small>Source of truth</small></div>
+            <div class="arr">↓</div>
+            <div class="pipe"><strong>Storage</strong><small>Files, videos, blobs</small></div>
+          </div>
+        </section>
+
+        <!-- STEP 3 -->
+        <section class="card step s3" style="--c:#FF9500">
+          <div class="step-head">
+            <span class="num">03</span>
+            <h2>Database Decision <span class="ico">💾</span></h2>
+          </div>
+          <div class="tree">
+            <div class="tree-q">Need Relationships?</div>
+            <div class="tree-branch">
+              <div class="leaf yes"><b>YES</b> → SQL</div>
+              <div class="leaf no"><b>NO</b> → NoSQL</div>
+            </div>
+            <div class="tree-more">
+              <div class="leaf">Need search? → <b>Elasticsearch</b></div>
+              <div class="leaf">Need analytics? → <b>Data Warehouse</b></div>
+              <div class="leaf">Need graph? → <b>Graph DB</b></div>
+              <div class="leaf">Need time series? → <b>Time Series DB</b></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 4 -->
+        <section class="card step s4" style="--c:#007AFF">
+          <div class="step-head">
+            <span class="num">04</span>
+            <h2>Cache <span class="ico">🚀</span></h2>
+          </div>
+          <div class="cache-flow">
+            <div class="tree-q">Is data read frequently?</div>
+            <div class="arr">↓ YES</div>
+            <div class="redis-box">Redis</div>
+            <div class="benefits">
+              <span>✓ Faster</span>
+              <span>✓ Less DB load</span>
+              <span>✓ Cheap</span>
+            </div>
+            <div class="hitmiss">
+              <div class="hm hit">
+                <b>Cache Hit</b>
+                <span>Return from Redis</span>
+              </div>
+              <div class="hm miss">
+                <b>Cache Miss</b>
+                <span>DB → then fill Redis</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 5 -->
+        <section class="card step s5" style="--c:#34C759">
+          <div class="step-head">
+            <span class="num">05</span>
+            <h2>Scale <span class="ico">📈</span></h2>
+          </div>
+          <p class="mini-q">Traffic Growing?</p>
+          <div class="scale-chain">
+            <div class="sc"><strong>Vertical Scaling</strong><small>Bigger machine</small></div>
+            <div class="arr">↓</div>
+            <div class="sc"><strong>Horizontal Scaling</strong><small>More machines</small></div>
+            <div class="arr">↓</div>
+            <div class="sc"><strong>Load Balancer</strong><small>Split requests across servers</small></div>
+            <div class="arr">↓</div>
+            <div class="sc"><strong>Auto Scaling</strong><small>Add/remove on demand</small></div>
+            <div class="arr">↓</div>
+            <div class="sc"><strong>CDN</strong><small>Edge-close static content</small></div>
+            <div class="arr">↓</div>
+            <div class="sc"><strong>Microservices</strong><small>Split by domain</small></div>
+          </div>
+        </section>
+
+        <!-- STEP 6 -->
+        <section class="card step s6" style="--c:#FF9500">
+          <div class="step-head">
+            <span class="num">06</span>
+            <h2>Common Building Blocks <span class="ico">🧩</span></h2>
+          </div>
+          <div class="blocks">
+            <div class="blk"><b>API Gateway</b><span>Front door · Kong / AWS</span></div>
+            <div class="blk"><b>Message Queue</b><span>Async jobs · SQS / RabbitMQ</span></div>
+            <div class="blk"><b>Redis</b><span>Fast cache</span></div>
+            <div class="blk"><b>Kafka</b><span>Async events</span></div>
+            <div class="blk"><b>CDN</b><span>Images · CloudFront</span></div>
+            <div class="blk"><b>Blob Storage</b><span>Files · S3</span></div>
+            <div class="blk"><b>Search Engine</b><span>Full-text · ES</span></div>
+            <div class="blk"><b>Notification</b><span>Push / email / SMS</span></div>
+            <div class="blk"><b>Authentication</b><span>Identity · JWT / OAuth</span></div>
+            <div class="blk"><b>Monitoring</b><span>Health · Prometheus</span></div>
+            <div class="blk"><b>Logging</b><span>Debug trail · ELK</span></div>
+          </div>
+        </section>
+
+        <!-- STEP 7 -->
+        <section class="card step s7" style="--c:#007AFF">
+          <div class="step-head">
+            <span class="num">07</span>
+            <h2>Interview Checklist <span class="ico">✅</span></h2>
+          </div>
+          <p class="mini-q">Have I discussed…</p>
+          <div class="checks">
+            <label>□ APIs</label>
+            <label>□ Database</label>
+            <label>□ Cache</label>
+            <label>□ Scaling</label>
+            <label>□ Load Balancer</label>
+            <label>□ Security</label>
+            <label>□ Monitoring</label>
+            <label>□ Fault Tolerance</label>
+            <label>□ Replication</label>
+            <label>□ Partitioning</label>
+            <label>□ CDN</label>
+            <label>□ Rate Limiting</label>
+            <label>□ Message Queue</label>
+            <label>□ Storage</label>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <aside class="side-col">
+
+        <section class="card cheat">
+          <h2>System Design<br />Cheat Codes <span class="ico">⚡</span></h2>
+          <ul class="cheat-list">
+            <li><span>Authentication</span><b>JWT</b></li>
+            <li><span>Real-time</span><b>WebSockets</b></li>
+            <li><span>Notifications</span><b>Queue</b></li>
+            <li><span>Large Files</span><b>Object Storage</b></li>
+            <li><span>Search</span><b>Elasticsearch</b></li>
+            <li><span>High Reads</span><b>Redis</b></li>
+            <li><span>High Writes</span><b>Kafka</b></li>
+            <li><span>Analytics</span><b>Data Warehouse</b></li>
+          </ul>
+        </section>
+
+        <section class="card questions">
+          <h2>Most Common<br />Interview Qs <span class="ico">🔥</span></h2>
+          <ul class="q-list">
+            <li><span>Twitter</span><b>Timeline Fan-out</b></li>
+            <li><span>Instagram</span><b>Feed + Media CDN</b></li>
+            <li><span>WhatsApp</span><b>WebSockets</b></li>
+            <li><span>Uber</span><b>Live Location</b></li>
+            <li><span>YouTube</span><b>Video Processing</b></li>
+            <li><span>Dropbox</span><b>File Sync</b></li>
+            <li><span>TinyURL</span><b>Hash + Redirect</b></li>
+            <li><span>Netflix</span><b>CDN Streaming</b></li>
+            <li><span>Spotify</span><b>Playlist + Recs</b></li>
+            <li><span>Google Drive</span><b>Chunked Upload</b></li>
+          </ul>
+        </section>
+
+      </aside>
+    </div>
+
+    <!-- MAGIC DECISION TREE -->
+    <section class="card magic">
+      <h2>The Magic Decision Tree <span class="ico">🪄</span></h2>
+      <div class="magic-rail">
+        <div class="magic-pair"><div class="mf start">User Request?</div></div>
+        <div class="magic-pair"><div class="mf q">Needs Speed?</div><div class="mf a blue">→ Cache</div></div>
+        <div class="magic-pair"><div class="mf q">Needs Reliability?</div><div class="mf a green">→ Replication</div></div>
+        <div class="magic-pair"><div class="mf q">Needs Scale?</div><div class="mf a orange">→ Load Balancer</div></div>
+        <div class="magic-pair"><div class="mf q">Need Async?</div><div class="mf a blue">→ Queue</div></div>
+        <div class="magic-pair"><div class="mf q">Need Search?</div><div class="mf a green">→ Elasticsearch</div></div>
+        <div class="magic-pair"><div class="mf q">Need Files?</div><div class="mf a orange">→ Object Storage</div></div>
+        <div class="magic-pair"><div class="mf q">Need Global Users?</div><div class="mf a blue">→ CDN</div></div>
+      </div>
+    </section>
+
+    <!-- REMEMBER THIS -->
+    <section class="card remember">
+      <h2>Remember This</h2>
+      <p class="remember-lead">Every System Design Interview is just answering:</p>
+      <div class="remember-flow">
+        <div class="rf"><span>1</span>Who are the users?</div>
+        <div class="rfa">↓</div>
+        <div class="rf"><span>2</span>How does the request travel?</div>
+        <div class="rfa">↓</div>
+        <div class="rf"><span>3</span>Where is the data stored?</div>
+        <div class="rfa">↓</div>
+        <div class="rf"><span>4</span>How do we make it fast?</div>
+        <div class="rfa">↓</div>
+        <div class="rf"><span>5</span>How do we make it scale?</div>
+        <div class="rfa">↓</div>
+        <div class="rf"><span>6</span>How do we make it reliable?</div>
+      </div>
+      <p class="thats-it">That's it.</p>
+    </section>
+
+    <footer class="foot">
+      Field Guide · Think FIRST · Draw SECOND · Scale LAST
+    </footer>
+  </div>
+</body>
+</html>
